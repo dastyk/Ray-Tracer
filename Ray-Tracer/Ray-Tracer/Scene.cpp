@@ -7,8 +7,8 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 {
 	srand(1337U);
 	memset(&_numObjects, 0, sizeof(SceneData::CountData));
-	/*_AddSphere(XMFLOAT3(0.0f, 0.0f, 3.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-	_AddSphere(XMFLOAT3(5.0f, 0.5f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));*/
+	_AddSphere(XMFLOAT3(0.0f, 0.0f, 3.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	_AddSphere(XMFLOAT3(5.0f, 0.5f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
 
 
 	//_AddTriangle(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f));
@@ -19,10 +19,10 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	//_AddRandomSphere();
 	//_AddRandomSphere();
 	//_AddRandomSphere();
-	for(int i = 0;i  <200; i++)
-		_AddRandomSphere();
-	_AddPointLight(XMFLOAT3(100.0f, 0.0f, 3.0f), 1.0f);
-	//_AddPointLight(XMFLOAT3(10.0f, 0.0f, 3.0f), 1.5f);
+	/*for(int i = 0;i  <200; i++)
+		_AddRandomSphere();*/
+	//_AddPointLight(XMFLOAT3(100.0f, 0.0f, 3.0f), 1.0f);
+	_AddPointLight(XMFLOAT3(10.0f, 0.0f, 3.0f), 0.5f);
 }
 
 Scene::~Scene()

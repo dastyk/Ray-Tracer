@@ -1,5 +1,6 @@
 RWTexture2D<float4> output : register(u0);
 #define M_PI 3.14159265358979323846f
+#define D_PI 0.31830988618f
 #define MAX_PRIMITIVES 1024
 
 struct Ray
@@ -129,15 +130,16 @@ bool RayTriangleIntersect(Ray ray, float3 p0, float3 p1, float3 p2, out float t,
 //groupshared float3 Color[MAX_PRIMITIVES];
 groupshared float4 TempCache[MAX_PRIMITIVES];
 
-float CalcShadow(float3 LightPos, float lum, uint i, float3 p, float3 normal)
+float CalcShadow(float3 LightPos, float lum, uint i, float3 p, float3 normal, float3 v)
 {
 	Ray sunR;
 	sunR.Origin = p;
 	sunR.Dir = normalize(LightPos - sunR.Origin);
+	float3 halfv = normalize(v + sunR.Dir);
 	bool c = true;
-	float v = dot(normal, sunR.Dir);
+	float a = dot(normal, sunR.Dir);
 	float totalLum = 0.0f;
-	if (v > 0.0f)
+	if (a > 0.0f)
 	{
 		for (uint j = 0; j < g_numSpheres; j++)
 		{
@@ -151,7 +153,8 @@ float CalcShadow(float3 LightPos, float lum, uint i, float3 p, float3 normal)
 		}
 		if (c)
 		{
-			totalLum += lum * v;
+			float spec = pow(dot(normal, halfv), 17);
+			totalLum += lum * a + spec;
 		}
 	}
 
@@ -240,6 +243,7 @@ void main( uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex
 	if (finalSI != -1)
 	{
 		float3 normal = normalize(p - TempCache[finalSI].xyz);
+		float3 v = normalize(g_CameraPosition - p);
 		float totalLight = 0.1f;
 
 		//// Share prefetched light with rest of group.
@@ -254,7 +258,7 @@ void main( uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex
 		for (uint i = 0; i < g_numPointLights; i++)
 		{
 			float4 pointLight = asfloat(pointLightData.Load4(i * 16));
-			totalLight += CalcShadow(pointLight.xyz , pointLight.w, finalSI, p, normal);
+			totalLight += CalcShadow(pointLight.xyz , pointLight.w, finalSI, p, normal, v);
 		}
 
 		myColor = scolor.xyz * totalLight;
