@@ -134,7 +134,7 @@ ComputeBuffer* ComputeWrap::CreateBuffer(COMPUTE_BUFFER_TYPE uType,
 	if(uType == STRUCTURED_BUFFER)
 		buffer->_Resource = CreateStructuredBuffer(uElementSize, uCount, bSRV, bUAV, pInitData, cpuAccess);
 	else if(uType == RAW_BUFFER)
-		buffer->_Resource = CreateRawBuffer(uElementSize * uCount, pInitData);
+		buffer->_Resource = CreateRawBuffer(uElementSize * uCount, bSRV, bUAV, pInitData, cpuAccess);
 
 	if(buffer->_Resource != nullptr)
 	{
@@ -191,15 +191,23 @@ ID3D11Buffer* ComputeWrap::CreateStructuredBuffer(UINT uElementSize, UINT uCount
 	return pBufOut;
 }
 
-ID3D11Buffer* ComputeWrap::CreateRawBuffer(UINT uSize, VOID* pInitData)
+ID3D11Buffer* ComputeWrap::CreateRawBuffer(UINT uSize, bool bSRV, bool bUAV, VOID* pInitData, bool cpuAccess)
 {
     ID3D11Buffer* pBufOut = nullptr;
 
     D3D11_BUFFER_DESC desc;
     ZeroMemory(&desc, sizeof(desc));
-    desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_INDEX_BUFFER | D3D11_BIND_VERTEX_BUFFER;
-    desc.ByteWidth = uSize;
+  //  desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_INDEX_BUFFER | D3D11_BIND_VERTEX_BUFFER;
+    
+	desc.BindFlags = 0;
+
+	if (bUAV)	desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+	if (bSRV)	desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+
+	desc.ByteWidth = uSize;
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+	desc.CPUAccessFlags = cpuAccess ? D3D11_CPU_ACCESS_WRITE : 0;
+	desc.Usage = cpuAccess ? D3D11_USAGE_DYNAMIC : pInitData ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT;
 
     if ( pInitData )
     {

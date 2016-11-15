@@ -6,9 +6,9 @@ using namespace DirectX;
 Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _height(height), _input(input), _camera(90.0f, (float)_width / (float)_height, 0.01f, 100.0f, XMFLOAT3(3.0f, 3.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 0.0f))
 {
 	srand(1337U);
-	memset(&_numObjects, 0, sizeof(CountData));
-//	_AddSphere(XMFLOAT3(0.0f, 0.0f, 3.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-	//_AddSphere(XMFLOAT3(4.0f, 0.0f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	memset(&_numObjects, 0, sizeof(SceneData::CountData));
+	/*_AddSphere(XMFLOAT3(0.0f, 0.0f, 3.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	_AddSphere(XMFLOAT3(5.0f, 0.5f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));*/
 
 
 	//_AddTriangle(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f));
@@ -22,14 +22,14 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	for(int i = 0;i  <200; i++)
 		_AddRandomSphere();
 	_AddPointLight(XMFLOAT3(100.0f, 0.0f, 3.0f), 1.0f);
-	//_AddPointLight(XMFLOAT3(3.0f, 10.0f, 3.0f), 1.5f);
+	//_AddPointLight(XMFLOAT3(10.0f, 0.0f, 3.0f), 1.5f);
 }
 
 Scene::~Scene()
 {
 }
 
-bool Scene::Update(float deltaTime)
+uint8_t Scene::Update(float deltaTime)
 {
 	if (_input.IsKeyPushed(Input::Keys::Escape))
 		PostQuitMessage(0);
@@ -58,25 +58,25 @@ bool Scene::Update(float deltaTime)
 	if (yd)
 		_camera.RotatePitch(-yd*deltaTime*msen);
 
-	return false;
+	return 0;
 }
 
-const CountData * Scene::GetCounts() const
+const SceneData::CountData& Scene::GetCounts() const
 {
-	return &_numObjects;
+	return _numObjects;
 }
 
-const Sphere * Scene::GetSpheres() const
+const SceneData::Sphere& Scene::GetSpheres() const
 {
 	return _spheres;
 }
 
-const Triangle * Scene::GetTriangles() const
+const SceneData::Triangle& Scene::GetTriangles() const
 {
 	return _triangles;
 }
 
-const PointLight * Scene::GetPointLights() const
+const SceneData::PointLight& Scene::GetPointLights() const
 {
 	return _pointLights;
 }
@@ -88,23 +88,22 @@ Camera * Scene::GetCamera()
 
 const void Scene::_AddSphere(const DirectX::XMFLOAT3 & pos, float radius, const DirectX::XMFLOAT3 & color)
 {
-	if (_numObjects.numSpheres < maxSpheres)
+	if (_numObjects.numSpheres < SceneData::maxSpheres)
 	{
-		_spheres[_numObjects.numSpheres].Pos = pos;
-		_spheres[_numObjects.numSpheres].radius = radius;
-		_spheres[_numObjects.numSpheres].Color = color;
+		_spheres.Position3_Radius_1[_numObjects.numSpheres] = XMFLOAT4(pos.x, pos.y, pos.z, radius);
+		_spheres.Color[_numObjects.numSpheres] = XMFLOAT4(color.x, color.y, color.z, 1.0f);
 		_numObjects.numSpheres++;
 	}
 }
 
 const void Scene::_AddTriangle(const DirectX::XMFLOAT3 & p0, const DirectX::XMFLOAT3 & p1, const DirectX::XMFLOAT3 & p2, const DirectX::XMFLOAT3 & color)
 {
-	if (_numObjects.numTriangles < maxTriangles)
+	if (_numObjects.numTriangles < SceneData::maxTriangles)
 	{
-		_triangles[_numObjects.numTriangles].p0 = p0;
-		_triangles[_numObjects.numTriangles].p1 = p1;
-		_triangles[_numObjects.numTriangles].p2 = p2;
-		_triangles[_numObjects.numTriangles].Color = color;
+		_triangles.p0[_numObjects.numTriangles] = XMFLOAT4(p0.x, p0.y, p0.z, 1.0f);
+		_triangles.p1[_numObjects.numTriangles] = XMFLOAT4(p1.x, p1.y, p1.z, 1.0f);
+		_triangles.p2[_numObjects.numTriangles] = XMFLOAT4(p2.x, p2.y, p2.z, 1.0f);
+		_triangles.Color[_numObjects.numTriangles] = XMFLOAT4(color.x, color.y, color.z, 1.0f);
 		_numObjects.numTriangles++;
 	}
 }
@@ -119,10 +118,9 @@ const void Scene::_AddRandomSphere()
 
 const void Scene::_AddPointLight(const DirectX::XMFLOAT3 & pos, float luminosity)
 {
-	if (_numObjects.numPointLights < maxPointLights)
+	if (_numObjects.numPointLights < SceneData::maxPointLights)
 	{
-		_pointLights[_numObjects.numPointLights].Pos = pos;
-		_pointLights[_numObjects.numPointLights].luminosity = luminosity;
+		_pointLights.Position3_Luminosity1[_numObjects.numPointLights] = XMFLOAT4(pos.x, pos.y, pos.z, luminosity);
 		_numObjects.numPointLights++;
 	}
 }

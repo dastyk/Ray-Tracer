@@ -101,7 +101,7 @@ HRESULT Init()
 	HRESULT hr = S_OK;;
 
 	RECT rc;
-	GetClientRect( g_hWnd, &rc );
+	GetClientRect(g_hWnd, &rc);
 	g_Width = rc.right - rc.left;;
 	g_Height = rc.bottom - rc.top;
 
@@ -112,7 +112,7 @@ HRESULT Init()
 
 	D3D_DRIVER_TYPE driverType;
 
-	D3D_DRIVER_TYPE driverTypes[] = 
+	D3D_DRIVER_TYPE driverTypes[] =
 	{
 		D3D_DRIVER_TYPE_HARDWARE,
 		D3D_DRIVER_TYPE_REFERENCE,
@@ -120,7 +120,7 @@ HRESULT Init()
 	UINT numDriverTypes = sizeof(driverTypes) / sizeof(driverTypes[0]);
 
 	DXGI_SWAP_CHAIN_DESC sd;
-	ZeroMemory( &sd, sizeof(sd) );
+	ZeroMemory(&sd, sizeof(sd));
 	sd.BufferCount = 1;
 	sd.BufferDesc.Width = g_Width;
 	sd.BufferDesc.Height = g_Height;
@@ -140,7 +140,7 @@ HRESULT Init()
 	};
 	D3D_FEATURE_LEVEL initiatedFeatureLevel;
 
-	for( UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++ )
+	for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++)
 	{
 		driverType = driverTypes[driverTypeIndex];
 		hr = D3D11CreateDeviceAndSwapChain(
@@ -157,7 +157,7 @@ HRESULT Init()
 			&initiatedFeatureLevel,
 			&g_DeviceContext);
 
-		if( SUCCEEDED( hr ) )
+		if (SUCCEEDED(hr))
 		{
 			char title[256];
 			sprintf_s(
@@ -171,17 +171,17 @@ HRESULT Init()
 			break;
 		}
 	}
-	if( FAILED(hr) )
+	if (FAILED(hr))
 		return hr;
 
 	// Create a render target view
 	ID3D11Texture2D* pBackBuffer;
-	hr = g_SwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), (LPVOID*)&pBackBuffer );
-	if( FAILED(hr) )
+	hr = g_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+	if (FAILED(hr))
 		return hr;
-	
+
 	// create shader unordered access view on back buffer for compute shader to write into texture
-	hr = g_Device->CreateUnorderedAccessView( pBackBuffer, nullptr, &g_BackBufferUAV );
+	hr = g_Device->CreateUnorderedAccessView(pBackBuffer, nullptr, &g_BackBufferUAV);
 
 	// Release, not needed anymore.
 	pBackBuffer->Release();
@@ -195,30 +195,63 @@ HRESULT Init()
 	g_Scene = new Scene(g_Width, g_Height, *g_Input);
 
 
-	const CountData * cdata = g_Scene->GetCounts();
-	g_csCountbuffer = g_ComputeSys->CreateConstantBuffer(sizeof(CountData), (void*)cdata, true);
+	const SceneData::CountData& cdata = g_Scene->GetCounts();
 
-	g_csCameraBuffer = g_ComputeSys->CreateConstantBuffer(sizeof(CameraData), nullptr, true);
+	// Camera buffer
+	g_csCameraBuffer = g_ComputeSys->CreateConstantBuffer(sizeof(SceneData::CameraData), nullptr, true);
 
 
-	g_csSphereBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(Sphere), Scene::maxSpheres, true, false, nullptr, true);
-	
-	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(Triangle), Scene::maxTriangles, true, false, nullptr, true);
+	// Buffer for number of objects
+	g_csCountbuffer = g_ComputeSys->CreateConstantBuffer(sizeof(SceneData::CountData), (void*)&cdata, true);
 
-	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(PointLight), Scene::maxPointLights, true, false, nullptr, true);
+	// Object buffers
+	g_csSphereBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::sphereSize, SceneData::maxSpheres, true, false, nullptr, true);
+	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::triangleSize, SceneData::maxTriangles, true, false, nullptr, true);
+	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::pointLightSize, SceneData::maxPointLights, true, false, nullptr, true);
 
-	void* sm = g_csSphereBuffer->Map<void>();
-	memcpy(sm, g_Scene->GetSpheres(), cdata->numSpheres * sizeof(Sphere));
+	// Copy sphere data to device
+	const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
+	void* sphereData_d = g_csSphereBuffer->Map<void>();
+
+	memcpy(sphereData_d, sphereData_h.Position3_Radius_1, sizeof(XMFLOAT4)*cdata.numSpheres);
+	sphereData_d = (XMFLOAT4*)sphereData_d + SceneData::maxSpheres;
+
+	memcpy(sphereData_d, sphereData_h.Color, sizeof(XMFLOAT4)*cdata.numSpheres);
+
 	g_csSphereBuffer->Unmap();
 
-	sm = g_csPointLightBuffer->Map<void>();
-	memcpy(sm, g_Scene->GetPointLights(), cdata->numPointLights * sizeof(PointLight));
+
+	// Copy triangle data to device
+	const SceneData::Triangle& triangleData_h = g_Scene->GetTriangles();
+
+	void* triangleData_d = g_csTriangleBuffer->Map<void>();
+
+	memcpy(triangleData_d, triangleData_h.p0, sizeof(XMFLOAT4)*cdata.numTriangles);
+	triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+	memcpy(triangleData_d, triangleData_h.p1, sizeof(XMFLOAT4)*cdata.numTriangles);
+	triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+	memcpy(triangleData_d, triangleData_h.p2, sizeof(XMFLOAT4)*cdata.numTriangles);
+	triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+	memcpy(triangleData_d, triangleData_h.Color, sizeof(XMFLOAT4)*cdata.numTriangles);
+
+	g_csTriangleBuffer->Unmap();
+
+	// Copy pointlight data to device
+	const SceneData::PointLight& pointLightData_h = g_Scene->GetPointLights();
+	void* pointLightData_d = g_csPointLightBuffer->Map<void>();
+
+	memcpy(pointLightData_d, pointLightData_h.Position3_Luminosity1, sizeof(XMFLOAT4)*cdata.numPointLights);
+
 	g_csPointLightBuffer->Unmap();
 
-	ID3D11ShaderResourceView* srv[] = { g_csSphereBuffer->GetResourceView(), g_csTriangleBuffer->GetResourceView() , g_csPointLightBuffer->GetResourceView() };
+	ID3D11ShaderResourceView* srvs[] = { g_csSphereBuffer->GetResourceView() ,g_csTriangleBuffer->GetResourceView() ,g_csPointLightBuffer->GetResourceView() };
+	ID3D11Buffer* cbuffers[] = { g_csCountbuffer };
+	g_DeviceContext->CSSetShaderResources(0, 3, srvs);
+	g_DeviceContext->CSSetConstantBuffers(1, 1, cbuffers);
 
-	g_DeviceContext->CSSetShaderResources(0, 3, srv);
-	g_DeviceContext->CSSetConstantBuffers(0, 1, &g_csCountbuffer);
 	return S_OK;
 }
 
@@ -256,12 +289,12 @@ HRESULT Render(float deltaTime)
 
 	D3D11_MAPPED_SUBRESOURCE mappedData;
 	g_DeviceContext->Map(g_csCameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
-	CameraData* data = (CameraData*)mappedData.pData;
+	SceneData::CameraData* data = (SceneData::CameraData*)mappedData.pData;
 	data->Pos = g_Scene->GetCamera()->GetPosition();
 	data->Forward = g_Scene->GetCamera()->GetForward();
 	XMMATRIX inv = XMLoadFloat4x4(&g_Scene->GetCamera()->GetViewInv());
-	inv = XMMatrixTranspose(inv);
-	XMStoreFloat4x4(&data->ViewInv, inv); // Maybe need to transpose.
+	inv = XMMatrixTranspose(inv); // Don't know if i actually have to transpose.
+	XMStoreFloat4x4(&data->ViewInv, inv); 
 
 	data->Aspect = g_Scene->GetCamera()->GetAspect();
 	data->Fov = g_Scene->GetCamera()->GetFov();
@@ -276,7 +309,7 @@ HRESULT Render(float deltaTime)
 	ID3D11UnorderedAccessView* uav[] = { g_BackBufferUAV };
 
 	g_DeviceContext->CSSetUnorderedAccessViews(0, 1, uav, nullptr);
-	g_DeviceContext->CSSetConstantBuffers(1, 1, &g_csCameraBuffer);
+	g_DeviceContext->CSSetConstantBuffers(0, 1, &g_csCameraBuffer);
 	g_ComputeShader->Set();
 	
 

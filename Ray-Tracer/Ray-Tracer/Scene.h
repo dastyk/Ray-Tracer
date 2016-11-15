@@ -10,19 +10,15 @@
 class Scene
 {
 public:
-	static const uint32_t maxSpheres = 1024;
-	static const uint32_t maxTriangles = 1024;
-	static const uint32_t maxPointLights = 1024;
-
 	Scene(uint32_t width, uint32_t height, Input& input);
 	~Scene();
 
-	bool Update(float deltaTime);
+	uint8_t Update(float deltaTime);
 
-	const CountData* GetCounts()const;
-	const Sphere* GetSpheres()const;
-	const Triangle* GetTriangles()const;
-	const PointLight* GetPointLights()const;
+	const SceneData::CountData& GetCounts()const;
+	const SceneData::Sphere& GetSpheres()const;
+	const SceneData::Triangle& GetTriangles()const;
+	const SceneData::PointLight& GetPointLights()const;
 
 	Camera* GetCamera();
 private:
@@ -38,11 +34,11 @@ private:
 
 	
 
-	Sphere _spheres[maxSpheres];
-	Triangle _triangles[maxTriangles];
-	PointLight _pointLights[maxPointLights];
+	SceneData::Sphere _spheres;
+	SceneData::Triangle _triangles;
+	SceneData::PointLight _pointLights;
 
-	CountData _numObjects;
+	SceneData::CountData _numObjects;
 
 };
 
