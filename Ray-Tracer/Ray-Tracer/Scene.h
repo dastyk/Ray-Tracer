@@ -11,6 +11,7 @@ class Scene
 {
 public:
 	static const uint32_t maxSpheres = 1024;
+	static const uint32_t maxTriangles = 1024;
 	static const uint32_t maxPointLights = 1024;
 
 	Scene(uint32_t width, uint32_t height, Input& input);
@@ -20,11 +21,13 @@ public:
 
 	const CountData* GetCounts()const;
 	const Sphere* GetSpheres()const;
+	const Triangle* GetTriangles()const;
 	const PointLight* GetPointLights()const;
 
 	Camera* GetCamera();
 private:
 	const void _AddSphere(const DirectX::XMFLOAT3& pos, float radius, const DirectX::XMFLOAT3& color);
+	const void _AddTriangle(const DirectX::XMFLOAT3& p0, const DirectX::XMFLOAT3& p1, const DirectX::XMFLOAT3& p2, const DirectX::XMFLOAT3& color);
 	const void _AddRandomSphere();
 	const void _AddPointLight(const DirectX::XMFLOAT3& pos, float luminosity);
 
@@ -36,6 +39,7 @@ private:
 	
 
 	Sphere _spheres[maxSpheres];
+	Triangle _triangles[maxTriangles];
 	PointLight _pointLights[maxPointLights];
 
 	CountData _numObjects;

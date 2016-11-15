@@ -1,5 +1,6 @@
 RWTexture2D<float4> output : register(u0);
 #define M_PI 3.14159265358979323846f
+
 struct Ray
 {
 	float3 Origin;
@@ -11,6 +12,15 @@ struct Sphere
 	float radius;
 	float3 Color;
 };
+
+struct Triangle
+{
+	float3 p0 ;
+	float3 p1 ;
+	float3 p2 ;
+	float3 Color ;
+};
+
 struct PointLight
 {
 	float3 Position;
@@ -21,8 +31,11 @@ struct PointLight
 cbuffer CountData : register(b0)
 {
 	uint g_numSpheres;
+	uint g_numTriangles;
 	uint g_numPointLights;
 }
+
+
 cbuffer CameraData : register(b1)
 {
 	matrix g_mViewInv;
@@ -38,7 +51,8 @@ cbuffer CameraData : register(b1)
 
 
 StructuredBuffer<Sphere> spheres : register(t0);
-StructuredBuffer<PointLight> pointLights : register(t1);
+StructuredBuffer<Triangle> triangles : register(t1);
+StructuredBuffer<PointLight> pointLights : register(t2);
 
 
 bool RaySphereIntersect(Ray r, Sphere sph, out float t, out float3 p, out float q)
@@ -77,6 +91,35 @@ bool RaySphereIntersect(Ray r, Sphere sph)
 		return false;
 	return true;
 }
+
+bool RayTriangleIntersect(Ray ray, Triangle tri,out float t, out float3 p)
+{
+	float3 e1 = tri.p1 - tri.p0;
+	float3 e2 = tri.p2 - tri.p0;
+
+	float3 q = cross(ray.Dir, e2);
+	float a = dot(e1, q);
+
+	if (a > -0.000000000001f && a < 0.000000000001f)
+		return false;
+	float f = 1 / a;
+	float3 s = ray.Origin - tri.p0;
+	float u = f*dot(s, q);
+	if (u < 0.0)
+		return false;
+	float3 r = cross(s, e1);
+	float v = f*dot(ray.Dir, r);
+	if (v < 0.0 || u + v > 1.0)
+		return false;
+	t = f*dot(e2, r);
+	return true;
+
+}
+
+
+groupshared Sphere groupS[1024];
+groupshared Triangle groupT[1024];
+
 float CalcShadow(PointLight light, uint i, float3 p, float3 normal)
 {
 	Ray sunR;
@@ -91,7 +134,7 @@ float CalcShadow(PointLight light, uint i, float3 p, float3 normal)
 		{
 			if (j != i)
 			{
-				if (RaySphereIntersect(sunR, spheres[j]))
+				if (RaySphereIntersect(sunR, groupS[j]))
 				{
 					c = false;
 				}
@@ -105,9 +148,8 @@ float CalcShadow(PointLight light, uint i, float3 p, float3 normal)
 
 	return totalLum;
 }
-
 [numthreads(32, 32, 1)]
-void main( uint3 threadID : SV_DispatchThreadID)
+void main( uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
 	// Setup first ray
 	Ray r;
@@ -129,25 +171,56 @@ void main( uint3 threadID : SV_DispatchThreadID)
 	float3 myColor = float3(0.0f,0.0f,0.0f);
 	int finalSI = -1;
 	Sphere finalS;
+
+
+	// Load spheres into shared memory
+	if (groupIndex < g_numSpheres)
+		groupS[groupIndex] = spheres[groupIndex];
+
+	GroupMemoryBarrierWithGroupSync();
 	// Check intersect with spheres
 	for (uint i = 0; i < g_numSpheres; i++)
 	{
 
 		float tt = 0.0f;
 		float3 pp;
-		if (RaySphereIntersect(r, spheres[i], tt, pp, q))
+		if (RaySphereIntersect(r, groupS[i], tt, pp, q))
 		{
 			if (tt < t)
 			{
 				t = tt;
 				p = pp;
 				finalSI = i;
-				finalS = spheres[i];
+				finalS = groupS[i];
 
 			}
 			
 		}
 	}
+
+	//// Load triangles into shared memory
+	//if (groupIndex < g_numSpheres)
+	//	groupS[groupIndex] = spheres[groupIndex];
+	//GroupMemoryBarrierWithGroupSync();
+	//for (uint i = 0; i < g_numTriangles; i++)
+	//{
+
+	//	float tt = 0.0f;
+	//	float3 pp;
+	//	if (RayTriangleIntersect(r, groupS[i], tt, pp))
+	//	{
+	//		if (tt < t)
+	//		{
+	//			t = tt;
+	//			p = pp;
+	//			finalSI = i;
+	//			finalS = groupS[i];
+
+	//		}
+
+	//	}
+	//}
+
 	if (finalSI != -1)
 	{
 		float3 normal = normalize(p - finalS.Position);

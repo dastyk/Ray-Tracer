@@ -69,6 +69,7 @@ Scene*						g_Scene					= nullptr;
 ID3D11Buffer*				g_csCameraBuffer		= nullptr;
 ID3D11Buffer*				g_csCountbuffer			= nullptr;
 ComputeBuffer*				g_csSphereBuffer		= nullptr;
+ComputeBuffer*				g_csTriangleBuffer		= nullptr;
 ComputeBuffer*				g_csPointLightBuffer	= nullptr;
 
 
@@ -202,6 +203,8 @@ HRESULT Init()
 
 	g_csSphereBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(Sphere), Scene::maxSpheres, true, false, nullptr, true);
 	
+	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(Triangle), Scene::maxTriangles, true, false, nullptr, true);
+
 	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(PointLight), Scene::maxPointLights, true, false, nullptr, true);
 
 	void* sm = g_csSphereBuffer->Map<void>();
@@ -212,9 +215,9 @@ HRESULT Init()
 	memcpy(sm, g_Scene->GetPointLights(), cdata->numPointLights * sizeof(PointLight));
 	g_csPointLightBuffer->Unmap();
 
-	ID3D11ShaderResourceView* srv[] = { g_csSphereBuffer->GetResourceView() , g_csPointLightBuffer->GetResourceView() };
+	ID3D11ShaderResourceView* srv[] = { g_csSphereBuffer->GetResourceView(), g_csTriangleBuffer->GetResourceView() , g_csPointLightBuffer->GetResourceView() };
 
-	g_DeviceContext->CSSetShaderResources(0, 2, srv);
+	g_DeviceContext->CSSetShaderResources(0, 3, srv);
 	g_DeviceContext->CSSetConstantBuffers(0, 1, &g_csCountbuffer);
 	return S_OK;
 }
@@ -222,6 +225,7 @@ HRESULT Init()
 void Shutdown()
 {	
 	SAFE_DELETE(g_csPointLightBuffer);
+	SAFE_DELETE(g_csTriangleBuffer);
 	SAFE_DELETE(g_csSphereBuffer);
 	SAFE_RELEASE(g_csCameraBuffer);
 	SAFE_RELEASE(g_csCountbuffer);

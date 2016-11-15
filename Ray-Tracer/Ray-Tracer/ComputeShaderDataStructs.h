@@ -21,6 +21,7 @@ struct CameraData
 struct CountData
 {
 	uint32_t numSpheres;
+	uint32_t numTriangles;
 	uint32_t numPointLights;
 };
 
@@ -31,6 +32,15 @@ struct Sphere
 	float radius;
 	DirectX::XMFLOAT3 Color;
 };
+
+struct Triangle
+{
+	DirectX::XMFLOAT3 p0;
+	DirectX::XMFLOAT3 p1;
+	DirectX::XMFLOAT3 p2;
+	DirectX::XMFLOAT3 Color;
+};
+
 struct PointLight
 {
 	DirectX::XMFLOAT3 Pos;
