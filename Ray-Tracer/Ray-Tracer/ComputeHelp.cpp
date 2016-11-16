@@ -389,10 +389,10 @@ ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = pInitData;
 	data.SysMemPitch = uRowPitch; //uWidth * 4;
-
-	if(FAILED(mD3DDevice->CreateTexture2D( &desc, pInitData ? &data : nullptr, &pTexture )))
+	HRESULT hr = mD3DDevice->CreateTexture2D(&desc, pInitData ? &data : nullptr, &pTexture);
+	if(FAILED(hr))
 	{
-
+		int i = 0;
 	}
 
 	return pTexture;
@@ -426,8 +426,6 @@ ID3D11UnorderedAccessView* ComputeWrap::CreateTextureUAV(ID3D11Texture2D* pTextu
 	ID3D11UnorderedAccessView* pUAV = nullptr;
 
 	mD3DDevice->CreateUnorderedAccessView( pTexture, nullptr, &pUAV );
-	pTexture->Release();
-
 	return pUAV;
 }
 

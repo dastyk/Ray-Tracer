@@ -72,7 +72,6 @@ ComputeBuffer*				g_csSphereBuffer		= nullptr;
 ComputeBuffer*				g_csTriangleBuffer		= nullptr;
 ComputeBuffer*				g_csPointLightBuffer	= nullptr;
 
-
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
@@ -209,6 +208,7 @@ HRESULT Init()
 	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::triangleSize, SceneData::maxTriangles, true, false, nullptr, true);
 	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::pointLightSize, SceneData::maxPointLights, true, false, nullptr, true);
 
+
 	// Copy sphere data to device
 	const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
 	void* sphereData_d = g_csSphereBuffer->Map<void>();
@@ -246,6 +246,9 @@ HRESULT Init()
 	memcpy(pointLightData_d, pointLightData_h.Position3_Luminosity1, sizeof(XMFLOAT4)*cdata.numPointLights);
 
 	g_csPointLightBuffer->Unmap();
+
+
+
 
 	ID3D11ShaderResourceView* srvs[] = { g_csSphereBuffer->GetResourceView() ,g_csTriangleBuffer->GetResourceView() ,g_csPointLightBuffer->GetResourceView() };
 	ID3D11Buffer* cbuffers[] = { g_csCountbuffer };

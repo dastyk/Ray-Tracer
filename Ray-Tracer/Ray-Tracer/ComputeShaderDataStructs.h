@@ -7,9 +7,9 @@
 
 namespace SceneData
 {
-	static const uint32_t maxSpheres = 1024;
-	static const uint32_t maxTriangles = 1024;
-	static const uint32_t maxPointLights = 1024;
+	static const uint32_t maxSpheres = 512;
+	static const uint32_t maxTriangles = 512;
+	static const uint32_t maxPointLights = 512;
 
 	struct CameraData
 	{
