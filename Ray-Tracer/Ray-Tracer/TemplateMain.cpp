@@ -282,8 +282,58 @@ HRESULT Update(float deltaTime)
 {
 	g_Input->Frame();
 
-	g_Scene->Update(deltaTime);
+	uint8_t change = g_Scene->Update(deltaTime);
 	
+	if (change)
+	{
+		const SceneData::CountData& cdata = g_Scene->GetCounts();
+
+		// Copy sphere data to device
+		const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
+		void* sphereData_d = g_csSphereBuffer->Map<void>();
+
+		memcpy(sphereData_d, sphereData_h.Position3_Radius_1, sizeof(XMFLOAT4)*cdata.numSpheres);
+		sphereData_d = (XMFLOAT4*)sphereData_d + SceneData::maxSpheres;
+
+		memcpy(sphereData_d, sphereData_h.Color, sizeof(XMFLOAT4)*cdata.numSpheres);
+
+		g_csSphereBuffer->Unmap();
+
+
+		// Copy triangle data to device
+		const SceneData::Triangle& triangleData_h = g_Scene->GetTriangles();
+
+		void* triangleData_d = g_csTriangleBuffer->Map<void>();
+
+		memcpy(triangleData_d, triangleData_h.p0, sizeof(XMFLOAT4)*cdata.numTriangles);
+		triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+		memcpy(triangleData_d, triangleData_h.p1, sizeof(XMFLOAT4)*cdata.numTriangles);
+		triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+		memcpy(triangleData_d, triangleData_h.p2, sizeof(XMFLOAT4)*cdata.numTriangles);
+		triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+		memcpy(triangleData_d, triangleData_h.Color, sizeof(XMFLOAT4)*cdata.numTriangles);
+
+		g_csTriangleBuffer->Unmap();
+
+		// Copy pointlight data to device
+		const SceneData::PointLight& pointLightData_h = g_Scene->GetPointLights();
+		void* pointLightData_d = g_csPointLightBuffer->Map<void>();
+
+		memcpy(pointLightData_d, pointLightData_h.Position3_Luminosity1, sizeof(XMFLOAT4)*cdata.numPointLights);
+
+		g_csPointLightBuffer->Unmap();
+
+
+
+
+		ID3D11ShaderResourceView* srvs[] = { g_csSphereBuffer->GetResourceView() ,g_csTriangleBuffer->GetResourceView() ,g_csPointLightBuffer->GetResourceView() };
+		g_DeviceContext->CSSetShaderResources(0, 3, srvs);
+	}
+
+
 	return S_OK;
 }
 
@@ -327,14 +377,6 @@ HRESULT Render(float deltaTime)
 		return E_FAIL;
 
 
-	char title[256];
-	sprintf_s(
-		title,
-		sizeof(title),
-		"BTH - DirectCompute DEMO - Dispatch time: %f",
-		g_Timer->GetTime()
-	);
-	SetWindowTextA(g_hWnd, title);
 
 	return S_OK;
 }
@@ -368,6 +410,9 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
  g_Input->LockMouseToCenter(true);
 
+ uint32_t frameCount = 0;
+ uint32_t pCount = 0;
+ float timeval = 0.0f;
 	// Main message loop
 	MSG msg = {0};
 	while(WM_QUIT != msg.message)
@@ -392,6 +437,24 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			
 
 			prevTimeStamp = currTimeStamp;
+
+			timeval += dt;
+			frameCount++;
+			if (timeval > 1.0f)
+			{
+				pCount = frameCount;
+				frameCount = 0;
+				timeval = 0.0f;
+			}
+
+			char title[256];
+			sprintf_s(
+				title,
+				sizeof(title),
+				"FPS: %d, Dispatch time: %f", pCount,
+				g_Timer->GetTime()
+			);
+			SetWindowTextA(g_hWnd, title);
 		}
 	}
 

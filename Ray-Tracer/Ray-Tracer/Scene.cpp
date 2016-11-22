@@ -7,24 +7,49 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 {
 	srand(1337U);
 	memset(&_numObjects, 0, sizeof(SceneData::CountData));
-	_AddSphere(XMFLOAT3(0.0f, 0.0f, 3.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-	_AddSphere(XMFLOAT3(5.0f, 0.5f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
 
 
 	_AddTriangle(XMFLOAT3(1.5f, 0.0f, 0.0f), XMFLOAT3(1.5f, 3.0f, 4.0f), XMFLOAT3(3.0f, -2.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 
+	// Bottom
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(-10.0f, -10.0f, 10.0f), XMFLOAT3(10.0f, -10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(10.0f, -10.0f, 10.0f), XMFLOAT3(10.0f, -10.0f, -10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+	// Top
+	_AddTriangle(XMFLOAT3(-10.0f, 10.0f, -10.0f), XMFLOAT3(10.0f, 10.0f, -10.0f), XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddTriangle(XMFLOAT3(-10.0f, 10.0f, -10.0f), XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(-10.0f, 10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+	// Left
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(-10.0f, 10.0f, -10.0f), XMFLOAT3(-10.0f, 10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(-10.0f, 10.0f, 10.0f), XMFLOAT3(-10.0f, -10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+
+	// Right
+	_AddTriangle(XMFLOAT3(10.0f, -10.0f, -10.0f), XMFLOAT3(10.0f, -10.0f, 10.0f), XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddTriangle(XMFLOAT3(10.0f, -10.0f, -10.0f), XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(10.0f, 10.0f, -10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+	// Back
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, 10.0f), XMFLOAT3(-10.0f, 10.0f, 10.0f), XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, 10.0f), XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(10.0f, -10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+	// Front
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(10.0f, -10.0f, -10.0f), XMFLOAT3(10.0f, 10.0f,- 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(10.0f, 10.0f, -10.0f), XMFLOAT3(-10.0f, 10.0f, -10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
 	//_AddRandomSphere();
 	//_AddRandomSphere();
 	//_AddRandomSphere();
 	//_AddRandomSphere();
 	//_AddRandomSphere();
 	//_AddRandomSphere();
-	//for(int i = 0;i  <200; i++)
-	//	_AddRandomSphere();
-	//_AddPointLight(XMFLOAT3(100.0f, 0.0f, 3.0f), 1.0f);
+	for(int i = 0;i  <10; i++)
+		_AddRandomSphere();
+	_AddPointLight(XMFLOAT3(-5.0f, 7.0, -5.0f), 0.5f);
 
 	//_AddSphere(XMFLOAT3(10.0f, 0.0f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	_AddPointLight(XMFLOAT3(10.0f, 0.0f, 3.0f), 0.5f);
+	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.5f);
 }
 
 Scene::~Scene()
@@ -37,7 +62,7 @@ uint8_t Scene::Update(float deltaTime)
 		PostQuitMessage(0);
 
 	float step = 10.0f * deltaTime;
-	float msen = 1.0f;
+	float msen = 0.001f;
 	if (_input.IsKeyDown(Input::Keys::W))
 		_camera.MoveForward(step);
 	if (_input.IsKeyDown(Input::Keys::S))
@@ -56,11 +81,14 @@ uint8_t Scene::Update(float deltaTime)
 	int32_t xd, yd;
 	_input.GetMouseDiff(xd, yd);
 	if (xd)
-		_camera.RotateYaw(-xd*deltaTime*msen);
+		_camera.RotateYaw(-xd*msen);
 	if (yd)
-		_camera.RotatePitch(-yd*deltaTime*msen);
+		_camera.RotatePitch(-yd*msen);
 
-	return 0;
+
+	_Rotate(_spheres.Position3_Radius_1[1], deltaTime*0.5);
+	_Rotate(_pointLights.Position3_Luminosity1[0], deltaTime*0.3f);
+	return 1;
 }
 
 const SceneData::CountData& Scene::GetCounts() const
@@ -112,9 +140,9 @@ const void Scene::_AddTriangle(const DirectX::XMFLOAT3 & p0, const DirectX::XMFL
 
 const void Scene::_AddRandomSphere()
 {
-	XMFLOAT3 pos = XMFLOAT3((rand() % 10000 - 5000) / 100.0f, (rand() % 10000 - 5000) / 100.0f, (rand() % 10000 - 5000) / 100.0f);
+	XMFLOAT3 pos = XMFLOAT3((rand() % 200 - 100) / 10.0f, (rand() % 200 - 100) / 10.0f, (rand() % 200 - 100) / 10.0f);
 	XMFLOAT3 Color = XMFLOAT3((rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f);
-	float radius = (rand() % 1000 - 500) / 200.0f;
+	float radius = (rand() % 8 - 4) / 4.0f;
 	_AddSphere(pos, radius, Color);
 }
 
@@ -125,4 +153,15 @@ const void Scene::_AddPointLight(const DirectX::XMFLOAT3 & pos, float luminosity
 		_pointLights.Position3_Luminosity1[_numObjects.numPointLights] = XMFLOAT4(pos.x, pos.y, pos.z, luminosity);
 		_numObjects.numPointLights++;
 	}
+}
+
+const void Scene::_Rotate(DirectX::XMFLOAT4 & pos, float amount)
+{
+	XMMATRIX rotMatrix = XMMatrixRotationY(amount);
+	XMFLOAT4 fpos = pos;
+
+	XMVECTOR vpos = XMLoadFloat4(&fpos);
+	vpos = XMVector3TransformCoord(vpos, rotMatrix);
+	XMStoreFloat4(&pos, vpos);
+	pos.w = fpos.w;
 }

@@ -27,6 +27,9 @@ private:
 	const void _AddRandomSphere();
 	const void _AddPointLight(const DirectX::XMFLOAT3& pos, float luminosity);
 
+	const void _Rotate(DirectX::XMFLOAT4& pos, float amount);
+
+
 	uint32_t _width, _height;
 
 	Input& _input;
