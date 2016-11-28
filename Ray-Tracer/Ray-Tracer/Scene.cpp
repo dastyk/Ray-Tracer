@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include <DirectXMath.h>
-
+#include <fstream>
+using namespace std;
 using namespace DirectX;
 
 Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _height(height), _input(input), _camera(90.0f, (float)_width / (float)_height, 0.01f, 100.0f, XMFLOAT3(3.0f, 3.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 0.0f))
@@ -50,10 +51,35 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 
 	//_AddSphere(XMFLOAT3(10.0f, 0.0f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
 	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.5f);
+
+	std::vector<const char*> files;
+	vector<std::pair<ArfData::Data, ArfData::DataPointers>> data;
+	vector<XMMATRIX> mats;
+	mats.push_back(XMMatrixIdentity());
+	files.push_back("Meshes/Cube.arf");
+
+	_LoadMeshes(files, data);
+
+	_Interleave(data, mats);
+
+
+
+
+	for (auto& d : data)
+		operator delete(d.second.buffer);
+
+
 }
 
 Scene::~Scene()
 {
+
+	delete[] _textureTriangles.p0_textureID;
+	delete[] _textureTriangles.p1;
+	delete[] _textureTriangles.p2;
+	delete[] _textureTriangles.t0;
+	delete[] _textureTriangles.t1;
+	delete[] _textureTriangles.t2;
 }
 
 uint8_t Scene::Update(float deltaTime)
@@ -111,6 +137,11 @@ const SceneData::PointLight& Scene::GetPointLights() const
 	return _pointLights;
 }
 
+const SceneData::TexturedTriangle & Scene::GetTexturedTriangles() const
+{
+	return _textureTriangles;
+}
+
 Camera * Scene::GetCamera()
 {
 	return &_camera;
@@ -164,4 +195,91 @@ const void Scene::_Rotate(DirectX::XMFLOAT4 & pos, float amount)
 	vpos = XMVector3TransformCoord(vpos, rotMatrix);
 	XMStoreFloat4(&pos, vpos);
 	pos.w = fpos.w;
+}
+
+
+void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, vector<XMMATRIX>& transforms)
+{
+	_numObjects.numTexTriangles = 0;
+	for (auto& d : data)
+	{
+		_numObjects.numTexTriangles += d.first.NumFace;
+	}
+
+	_textureTriangles.p0_textureID = new XMFLOAT4[_numObjects.numTexTriangles];
+	_textureTriangles.p1 = new XMFLOAT4[_numObjects.numTexTriangles];
+	_textureTriangles.p2 = new XMFLOAT4[_numObjects.numTexTriangles];
+	_textureTriangles.t0 = new XMFLOAT2[_numObjects.numTexTriangles];
+	_textureTriangles.t1 = new XMFLOAT2[_numObjects.numTexTriangles];
+	_textureTriangles.t2 = new XMFLOAT2[_numObjects.numTexTriangles];
+
+	// Interleave data
+	uint32_t index = 0;
+	for (uint32_t ID = 0; ID < data.size(); ID++)
+	{
+		auto& d = data[ID];
+		XMMATRIX& mat = transforms[ID];
+
+		for (uint32_t i = 0; i < d.first.NumSubMesh; i++)
+		{
+			for (uint32_t j = d.second.subMesh[i].faceStart; j < d.second.subMesh[i].faceCount; j++)
+			{
+				auto& face = d.second.faces[j];
+
+				XMVECTOR p0 = XMLoadFloat3((XMFLOAT3*)&d.second.positions[face.indices[0].index[0] - 1]);
+				XMVECTOR p1 = XMLoadFloat3((XMFLOAT3*)&d.second.positions[face.indices[1].index[0] - 1]);
+				XMVECTOR p2 = XMLoadFloat3((XMFLOAT3*)&d.second.positions[face.indices[2].index[0] - 1]);
+
+				p0 = XMVector3TransformCoord(p0, mat);
+				p1 = XMVector3TransformCoord(p1, mat);
+				p2 = XMVector3TransformCoord(p2, mat);
+
+				XMStoreFloat4(&_textureTriangles.p0_textureID[index], p0);
+				_textureTriangles.p0_textureID[index].w = ID;
+				XMStoreFloat4(&_textureTriangles.p1[index], p0);
+				XMStoreFloat4(&_textureTriangles.p2[index], p2);
+
+				memcpy(&_textureTriangles.t0[index], &d.second.texCoords[face.indices[0].index[1] - 1], sizeof(XMFLOAT2));
+				memcpy(&_textureTriangles.t1[index], &d.second.texCoords[face.indices[1].index[1] - 1], sizeof(XMFLOAT2));
+				memcpy(&_textureTriangles.t2[index], &d.second.texCoords[face.indices[2].index[1] - 1], sizeof(XMFLOAT2));
+
+
+				index++;
+
+			}
+		}
+
+
+
+	}
+
+}
+
+void Scene::_LoadMeshes(const std::vector<const char*>& files, vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data)
+{
+	for (auto& f : files)
+	{
+		data.push_back({ ArfData::Data(), ArfData::DataPointers() });
+		_LoadMesh(f, data[data.size() - 1]);
+	}
+	
+
+}
+
+void Scene::_LoadMesh(const char* filename, std::pair<ArfData::Data, ArfData::DataPointers>& data)
+{
+	ifstream file(filename, ios::binary);
+	if (!file.is_open())
+		throw filename;
+
+	file.read((char*)&data.first, sizeof(ArfData::Data));
+	data.second.buffer = operator new(data.first.allocated);
+	file.read((char*)data.second.buffer, data.first.allocated);
+	data.second.positions = (ArfData::Position*)(data.second.buffer);
+	data.second.texCoords = (ArfData::TexCoord*)(data.second.positions + data.first.NumPos);
+	data.second.normals = (ArfData::Normal*)(data.second.texCoords + data.first.NumTex);
+	data.second.faces = (ArfData::Face*)(data.second.normals + data.first.NumNorm);
+	data.second.subMesh = (ArfData::SubMesh*)(data.second.faces + data.first.NumFace);
+
+	file.close();
 }

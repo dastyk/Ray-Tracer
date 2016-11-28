@@ -71,7 +71,7 @@ ID3D11Buffer*				g_csCountbuffer			= nullptr;
 ComputeBuffer*				g_csSphereBuffer		= nullptr;
 ComputeBuffer*				g_csTriangleBuffer		= nullptr;
 ComputeBuffer*				g_csPointLightBuffer	= nullptr;
-
+ComputeBuffer*				g_csTexTriangleBuffer	= nullptr;
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ HRESULT Init()
 	g_csSphereBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::sphereSize, SceneData::maxSpheres, true, false, nullptr, true);
 	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::triangleSize, SceneData::maxTriangles, true, false, nullptr, true);
 	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::pointLightSize, SceneData::maxPointLights, true, false, nullptr, true);
-
+	g_csTexTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::texturedTriangleSize, cdata.numTexTriangles, true, false, nullptr, true);
 
 	// Copy sphere data to device
 	const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
@@ -248,11 +248,36 @@ HRESULT Init()
 	g_csPointLightBuffer->Unmap();
 
 
+	// copy the textured triangle data to device
+	const SceneData::TexturedTriangle& texTriangleData_h = g_Scene->GetTexturedTriangles();
+	void* texTriData_d = g_csTexTriangleBuffer->Map<void>();
 
+	memcpy(texTriData_d, texTriangleData_h.p0_textureID, sizeof(XMFLOAT4)*cdata.numTexTriangles);
+	texTriData_d = (XMFLOAT4*)texTriData_d + cdata.numTexTriangles;
+	memcpy(texTriData_d, texTriangleData_h.p1, sizeof(XMFLOAT4)*cdata.numTexTriangles);
+	texTriData_d = (XMFLOAT4*)texTriData_d + cdata.numTexTriangles;
+	memcpy(texTriData_d, texTriangleData_h.p2, sizeof(XMFLOAT4)*cdata.numTexTriangles);
+	texTriData_d = (XMFLOAT4*)texTriData_d + cdata.numTexTriangles;
 
-	ID3D11ShaderResourceView* srvs[] = { g_csSphereBuffer->GetResourceView() ,g_csTriangleBuffer->GetResourceView() ,g_csPointLightBuffer->GetResourceView() };
+	memcpy(texTriData_d, texTriangleData_h.t0, sizeof(XMFLOAT2)*cdata.numTexTriangles);
+	texTriData_d = (XMFLOAT2*)texTriData_d + cdata.numTexTriangles;
+	memcpy(texTriData_d, texTriangleData_h.t1, sizeof(XMFLOAT2)*cdata.numTexTriangles);
+	texTriData_d = (XMFLOAT2*)texTriData_d + cdata.numTexTriangles;
+	memcpy(texTriData_d, texTriangleData_h.t2, sizeof(XMFLOAT2)*cdata.numTexTriangles);
+	texTriData_d = (XMFLOAT2*)texTriData_d + cdata.numTexTriangles;
+
+	g_csTexTriangleBuffer->Unmap();
+
+	ID3D11ShaderResourceView* srvs[] = 
+	{ 
+		g_csSphereBuffer->GetResourceView(),
+		g_csTriangleBuffer->GetResourceView(),
+		g_csPointLightBuffer->GetResourceView(),
+		g_csTexTriangleBuffer->GetResourceView() 
+	};
+
 	ID3D11Buffer* cbuffers[] = { g_csCountbuffer };
-	g_DeviceContext->CSSetShaderResources(0, 3, srvs);
+	g_DeviceContext->CSSetShaderResources(0, 4, srvs);
 	g_DeviceContext->CSSetConstantBuffers(1, 1, cbuffers);
 
 	return S_OK;
@@ -260,6 +285,7 @@ HRESULT Init()
 
 void Shutdown()
 {	
+	SAFE_DELETE(g_csTexTriangleBuffer);
 	SAFE_DELETE(g_csPointLightBuffer);
 	SAFE_DELETE(g_csTriangleBuffer);
 	SAFE_DELETE(g_csSphereBuffer);

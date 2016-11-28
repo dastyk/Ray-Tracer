@@ -26,11 +26,13 @@ cbuffer CountData : register(b1)
 	uint g_numSpheres;
 	uint g_numTriangles;
 	uint g_numPointLights;
+	uint g_numTexTriangles;
 }
 
 ByteAddressBuffer sphereData : register(t0);
 ByteAddressBuffer triangleData: register(t1);
 ByteAddressBuffer pointLightData: register(t2);
+ByteAddressBuffer texTriangleData: register(t3);
 
 bool RaySphereIntersect(Ray r, float3 center, float radius, out float t, out float3 p, out float3 normal)
 {
@@ -203,18 +205,19 @@ groupshared float4 TempCache3[MAX_PRIMITIVES];
 //groupshared float4 TempCache4[MAX_PRIMITIVES];
 
 
-#define NUM_BOUNCES 3
+#define NUM_BOUNCES 1
 
 void Intersections(Ray ray, uint groupIndex, out uint numHits, out float4 hitPos[5], out float4 hitNormal[5], out float4 hitColor[5])
 {
 	numHits = 0;
 	float t = 3.402823466e+38F;
 	float3 p;
-
+	uint numSets = g_numTexTriangles / 512 + 1;
 	float4 ftemp;
 	float4 ftemp1;
 	float4 ftemp2;
 	float4 ftemp3;
+
 
 	// Load spheres into shared memory
 	if (groupIndex < g_numSpheres)
