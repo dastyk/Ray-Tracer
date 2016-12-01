@@ -1,10 +1,4 @@
-//--------------------------------------------------------------------------------------
-// File: TemplateMain.cpp
-//
-// BTH-D3D-Template
-//
-// Copyright (c) Stefan Petersson 2013. All rights reserved.
-//--------------------------------------------------------------------------------------
+
 #include "stdafx.h"
 
 #include "ComputeHelp.h"
@@ -22,29 +16,7 @@ using namespace DirectX;
 
 #include <stdint.h>
 
-/*	DirectXTex library - for usage info, see http://directxtex.codeplex.com/
-	
-	Usage example (may not be the "correct" way, I just wrote it in a hurry):
 
-	DirectX::ScratchImage img;
-	DirectX::TexMetadata meta;
-	ID3D11ShaderResourceView* srv = nullptr;
-	if(SUCCEEDED(hr = DirectX::LoadFromDDSFile(_T("C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\Samples\\Media\\Dwarf\\Armor.dds"), 0, &meta, img)))
-	{
-		//img loaded OK
-		if(SUCCEEDED(hr = DirectX::CreateShaderResourceView(g_Device, img.GetImages(), img.GetImageCount(), meta, &srv)))
-		{
-			//srv created OK
-		}
-	}
-*/
-#include <DirectXTex.h>
-
-#if defined( DEBUG ) || defined( _DEBUG )
-#pragma comment(lib, "DirectXTexD.lib")
-#else
-#pragma comment(lib, "DirectXTex.lib")
-#endif
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -72,6 +44,9 @@ ComputeBuffer*				g_csSphereBuffer		= nullptr;
 ComputeBuffer*				g_csTriangleBuffer		= nullptr;
 ComputeBuffer*				g_csPointLightBuffer	= nullptr;
 ComputeBuffer*				g_csTexTriangleBuffer	= nullptr;
+ComputeTexture*				g_csTexture1			= nullptr;
+ID3D11SamplerState*			g_sampler				= nullptr;
+
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
@@ -268,23 +243,45 @@ HRESULT Init()
 
 	g_csTexTriangleBuffer->Unmap();
 
+
+	g_csTexture1 = g_ComputeSys->CreateTexture(L"Textures/chino.jpg");
+
+
+	D3D11_SAMPLER_DESC samd;
+	ZeroMemory(&sd, sizeof(sd));
+	samd.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samd.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samd.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samd.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samd.MaxAnisotropy = 16;
+	samd.Filter = D3D11_FILTER_ANISOTROPIC;
+	samd.MinLOD = -FLT_MAX;
+	samd.MaxLOD = FLT_MAX;
+	samd.MipLODBias = 0.0f;
+	g_Device->CreateSamplerState(&samd, &g_sampler);
+	g_DeviceContext->CSSetSamplers(0, 1, &g_sampler);
+
+
 	ID3D11ShaderResourceView* srvs[] = 
 	{ 
 		g_csSphereBuffer->GetResourceView(),
 		g_csTriangleBuffer->GetResourceView(),
 		g_csPointLightBuffer->GetResourceView(),
-		g_csTexTriangleBuffer->GetResourceView() 
+		g_csTexTriangleBuffer->GetResourceView(),
+		g_csTexture1->GetResourceView()
 	};
 
 	ID3D11Buffer* cbuffers[] = { g_csCountbuffer };
-	g_DeviceContext->CSSetShaderResources(0, 4, srvs);
+	g_DeviceContext->CSSetShaderResources(0, 5, srvs);
 	g_DeviceContext->CSSetConstantBuffers(1, 1, cbuffers);
 
 	return S_OK;
 }
 
 void Shutdown()
-{	
+{
+	SAFE_RELEASE(g_sampler);
+	SAFE_DELETE(g_csTexture1);
 	SAFE_DELETE(g_csTexTriangleBuffer);
 	SAFE_DELETE(g_csPointLightBuffer);
 	SAFE_DELETE(g_csTriangleBuffer);

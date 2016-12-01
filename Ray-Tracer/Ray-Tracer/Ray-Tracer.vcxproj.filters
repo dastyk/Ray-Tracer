@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="DirectXTK">
+      <UniqueIdentifier>{480438a9-4e4f-4135-bfb9-ec8996dc2598}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ComputeHelp.cpp">
@@ -32,6 +35,12 @@
     </ClCompile>
     <ClCompile Include="Scene.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXTK\DDSTextureLoader.cpp">
+      <Filter>DirectXTK</Filter>
+    </ClCompile>
+    <ClCompile Include="DirectXTK\WICTextureLoader.cpp">
+      <Filter>DirectXTK</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +64,24 @@
     </ClInclude>
     <ClInclude Include="Scene.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK\dds.h">
+      <Filter>DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK\DDSTextureLoader.h">
+      <Filter>DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK\DirectXHelpers.h">
+      <Filter>DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK\pch.h">
+      <Filter>DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK\PlatformHelpers.h">
+      <Filter>DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectXTK\WICTextureLoader.h">
+      <Filter>DirectXTK</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

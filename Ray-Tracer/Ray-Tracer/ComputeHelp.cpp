@@ -1,8 +1,4 @@
-//--------------------------------------------------------------------------------------
-// Real-Time JPEG Compression using DirectCompute - Demo
-//
-// Copyright (c) Stefan Petersson 2012. All rights reserved.
-//--------------------------------------------------------------------------------------
+
 #include "ComputeHelp.h"
 #include <cstdio>
 
@@ -343,29 +339,25 @@ ComputeTexture* ComputeWrap::CreateTexture(DXGI_FORMAT dxFormat, UINT uWidth,
 	return texture;
 }
 
-ComputeTexture* ComputeWrap::CreateTexture(TCHAR* textureFilename, const char* debugName)
+ComputeTexture* ComputeWrap::CreateTexture(const wchar_t* textureFilename, const char* debugName)
 {
-	MessageBoxA(0, "ComputeWrap::CreateTexture is not implemented anymore!", "Error", 0);
-	return nullptr;
-
-	/*
 	ComputeTexture* texture = new ComputeTexture();
 	texture->_D3DContext = mD3DDeviceContext;
-
-	if(SUCCEEDED(D3DX11CreateTextureFromFile(mD3DDevice, textureFilename, nullptr, nullptr, (ID3D11Resource**)&texture->_Resource, nullptr)))
+	ID3D11Resource** tex = (ID3D11Resource**)&texture->_Resource;
+	HRESULT hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilename, tex, &texture->_ResourceView);
+	if (FAILED(hr))
 	{
-		texture->_ResourceView = CreateTextureSRV(texture->_Resource);
-		
-		if(debugName)
-		{
-			if(texture->_Resource)				SetDebugName(texture->_Resource, debugName);
-			if(texture->_Staging)				SetDebugName(texture->_Staging, debugName);
-			if(texture->_ResourceView)			SetDebugName(texture->_ResourceView, debugName);
-			if(texture->_UnorderedAccessView)	SetDebugName(texture->_UnorderedAccessView, debugName);
-		}
+
+	}
+
+	if (debugName)
+	{
+		if (texture->_Resource)				SetDebugName(texture->_Resource, debugName);
+		if (texture->_Staging)				SetDebugName(texture->_Staging, debugName);
+		if (texture->_ResourceView)			SetDebugName(texture->_ResourceView, debugName);
+		if (texture->_UnorderedAccessView)	SetDebugName(texture->_UnorderedAccessView, debugName);
 	}
 	return texture;
-	*/
 }
 
 ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,

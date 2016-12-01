@@ -146,6 +146,8 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ComputeHelp.cpp" />
     <ClCompile Include="D3D11Timer.cpp" />
+    <ClCompile Include="DirectXTK\DDSTextureLoader.cpp" />
+    <ClCompile Include="DirectXTK\WICTextureLoader.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="TemplateMain.cpp" />
@@ -155,6 +157,12 @@
     <ClInclude Include="ComputeHelp.h" />
     <ClInclude Include="ComputeShaderDataStructs.h" />
     <ClInclude Include="D3D11Timer.h" />
+    <ClInclude Include="DirectXTK\dds.h" />
+    <ClInclude Include="DirectXTK\DDSTextureLoader.h" />
+    <ClInclude Include="DirectXTK\DirectXHelpers.h" />
+    <ClInclude Include="DirectXTK\pch.h" />
+    <ClInclude Include="DirectXTK\PlatformHelpers.h" />
+    <ClInclude Include="DirectXTK\WICTextureLoader.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />

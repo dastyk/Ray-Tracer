@@ -1,13 +1,11 @@
-//--------------------------------------------------------------------------------------
-// Real-Time JPEG Compression using DirectCompute - Demo
-//
-// Copyright (c) Stefan Petersson 2012. All rights reserved.
-//--------------------------------------------------------------------------------------
+
 #pragma once
 
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include "DirectXTK\WICTextureLoader.h"
+
 //#include <d3dx11.h>
 
 #include <tchar.h>
@@ -200,7 +198,7 @@ public:
 	ComputeTexture* CreateTexture(DXGI_FORMAT dxFormat,	UINT uWidth,
 		UINT uHeight, UINT uRowPitch, VOID* pInitData, bool bCreateStaging = false, const char* debugName = nullptr);
 
-	ComputeTexture* CreateTexture(TCHAR* textureFilename, const char* debugName = nullptr);
+	ComputeTexture* CreateTexture(const wchar_t* textureFilename, const char* debugName = nullptr);
 
 private:
 	ID3D11Buffer* CreateStructuredBuffer(UINT uElementSize, UINT uCount, bool bSRV, bool bUAV, VOID* pInitData, bool cpuAccess);
