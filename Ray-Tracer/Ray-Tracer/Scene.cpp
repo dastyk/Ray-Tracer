@@ -9,10 +9,10 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	srand(1337U);
 	memset(&_numObjects, 0, sizeof(SceneData::CountData));
 //	_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-//	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
 
 
-	//_AddTriangle(XMFLOAT3(1.5f, 0.0f, 0.0f), XMFLOAT3(1.5f, 3.0f, 4.0f), XMFLOAT3(3.0f, -2.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	_AddTriangle(XMFLOAT3(1.5f, 0.0f, 0.0f), XMFLOAT3(1.5f, 3.0f, 4.0f), XMFLOAT3(3.0f, -2.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 
 	// Bottom
 	_AddTriangle(XMFLOAT3(-10.0f, -10.0f, -10.0f), XMFLOAT3(-10.0f, -10.0f, 10.0f), XMFLOAT3(10.0f, -10.0f, 10.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
@@ -57,7 +57,7 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	vector<XMMATRIX> mats;
 	mats.push_back(XMMatrixIdentity());
 	files.push_back("Meshes/Cube.obj");
-	mats.push_back(XMMatrixTranslation(5.0f, 0.0f, 0.0f));
+	mats.push_back(XMMatrixTranslation(0.0f, -5.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
 	mats.push_back(XMMatrixTranslation(-5.0f, 0.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
@@ -72,7 +72,7 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 
 	for (auto& d : data)
 		operator delete(d.second.buffer);
-
+	return;
 
 }
 

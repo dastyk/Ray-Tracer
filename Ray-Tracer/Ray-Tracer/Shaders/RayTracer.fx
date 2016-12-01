@@ -143,7 +143,37 @@ bool RayTriangleIntersectBackFaceCull(Ray ray, float3 p0, float3 p1, float3 p2, 
 	return true;
 
 }
-bool RayTriangleIntersectFrontFaceCullNoData(Ray ray, float3 p0, float3 p1, float3 p2)
+bool RayTriangleIntersectBackFaceCullNoData(Ray ray, float3 p0, float3 p1, float3 p2, out float t)
+{
+	float3 e1 = p1 - p0;
+	float3 e2 = p2 - p0;
+
+	float3 normal = normalize(cross(e1, e2));
+	float theta = dot(ray.Dir, normal);
+	if (theta > 0.0f)
+		return false;
+
+	float3 q = cross(ray.Dir, e2);
+	float a = dot(e1, q);
+
+	if (a > -0.000000000001f && a < 0.000000000001f)
+		return false;
+	float f = 1 / a;
+	float3 s = ray.Origin - p0;
+	float u = f*dot(s, q);
+	if (u < 0.0f)
+		return false;
+	float3 r = cross(s, e1);
+	float v = f*dot(ray.Dir, r);
+	if (v < 0.0f || u + v > 1.0f)
+		return false;
+	t = f*dot(e2, r);
+	if (t < 0.0f)
+		return false;
+	return true;
+
+}
+bool RayTriangleIntersectFrontFaceCullNoData(Ray ray, float3 p0, float3 p1, float3 p2,out float t)
 {
 	float3 e1 = p1 - p0;
 	float3 e2 = p2 - p0;
@@ -167,7 +197,7 @@ bool RayTriangleIntersectFrontFaceCullNoData(Ray ray, float3 p0, float3 p1, floa
 	float v = f*dot(ray.Dir, r);
 	if (v < 0.0f || u + v > 1.0f)
 		return false;
-	float t = f*dot(e2, r);
+	t = f*dot(e2, r);
 	if (t < 0.0f)
 		return false;
 
@@ -241,14 +271,14 @@ groupshared float2 TempCache4[MAX_PRIMITIVES];
 //groupshared float4 TempCache4[MAX_PRIMITIVES];
 
 
-#define NUM_BOUNCES 2
+#define NUM_BOUNCES 3
 
 void Intersections(Ray ray, uint groupIndex, out uint numHits, out float4 hitPos[5], out float4 hitNormal[5], out float4 hitColor[5])
 {
 	numHits = 0;
 	float t = 3.402823466e+38F;
 	float3 p;
-	uint numSets = (g_numTexTriangles / MAX_PRIMITIVES) + 1;
+	uint numSets = (g_numTexTriangles / (MAX_PRIMITIVES+ 1)) + 1;
 	uint minTexNum = min(g_numTexTriangles, MAX_PRIMITIVES);
 	float4 ftemp;
 	float4 ftemp1;
@@ -284,12 +314,12 @@ void Intersections(Ray ray, uint groupIndex, out uint numHits, out float4 hitPos
 
 		for (uint set = 0; set < numSets; set++)
 		{
-			uint numTexTri = min((numSets - set - 1)*MAX_PRIMITIVES + minTexNum, MAX_PRIMITIVES);
-			uint nNumTexTri = min((numSets - set - 2)*MAX_PRIMITIVES + minTexNum, MAX_PRIMITIVES);
+			uint numTexTri = min((numSets - set - 1)* MAX_PRIMITIVES + minTexNum, MAX_PRIMITIVES); // Number of triangles in this set
+			uint nNumTexTri = min((numSets - set - 2)* MAX_PRIMITIVES + minTexNum, MAX_PRIMITIVES); // Number of triangles in next set
 			uint nset = set + 1;
 
 			
-
+			// Share the prefetched data with group.
 			if (groupIndex < numTexTri)
 			{
 				TempCache[groupIndex] = ftemp;
@@ -324,27 +354,29 @@ void Intersections(Ray ray, uint groupIndex, out uint numHits, out float4 hitPos
 					f2temp2 = asfloat(texTriangleData.Load2(groupIndex * 8 + g_numTexTriangles * 64 + nset * 8 * MAX_PRIMITIVES)); // t2
 				}
 			}
-
-			for (uint i = 0; i < numTexTri; i++)
+			if (numHits == n)
 			{
-				float tt = 0.0f;
-				float3 pp;
-				float3 normal;
-				float u, v;
-				if (RayTriangleIntersectBackFaceCullTexture(ray, TempCache[i].xyz, TempCache1[i].xyz, TempCache2[i].xyz, tt, pp, normal, u, v))
+				for (uint i = 0; i < numTexTri; i++)
 				{
-					if (tt < t)
+					float tt = 0.0f;
+					float3 pp;
+					float3 normal;
+					float u, v;
+					if (RayTriangleIntersectBackFaceCullTexture(ray, TempCache[i].xyz, TempCache1[i].xyz, TempCache2[i].xyz, tt, pp, normal, u, v))
 					{
-						hit = true;
-						t = tt;
-						hitPos[n] = float4(pp, tt);
-						hitNormal[n] = float4(normal, 0.0f);
-						//textureCoord = TempCache3[groupIndex].xy * textureCoord.x + TempCache3[groupIndex].zw * textureCoord.y + TempCache4[groupIndex] * (1 - textureCoord.x - textureCoord.y);
-						float2 tex = TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v;
+						if (tt < t)
+						{
+							hit = true;
+							t = tt;
+							hitPos[n] = float4(pp, tt);
+							hitNormal[n] = float4(normal, 0.0f);
+							//textureCoord = TempCache3[groupIndex].xy * textureCoord.x + TempCache3[groupIndex].zw * textureCoord.y + TempCache4[groupIndex] * (1 - textureCoord.x - textureCoord.y);
+							float2 tex = TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v;
 
-						hitColor[n] = float4(texture1.SampleLevel(texSampler, tex, 0).rgb, 0.1f);
+							hitColor[n] = float4(texture1.SampleLevel(texSampler, tex, 0).rgb, 0.1f);
+						}
+
 					}
-
 				}
 			}
 			GroupMemoryBarrierWithGroupSync();
@@ -441,7 +473,7 @@ void Intersections(Ray ray, uint groupIndex, out uint numHits, out float4 hitPos
 
 		}
 
-		GroupMemoryBarrierWithGroupSync();
+		
 
 		ray.Origin = hitPos[n].xyz;
 		t = 3.402823466e+38F;
@@ -454,7 +486,7 @@ void Intersections(Ray ray, uint groupIndex, out uint numHits, out float4 hitPos
 		}
 
 
-
+		GroupMemoryBarrierWithGroupSync();
 
 
 	}
@@ -468,21 +500,116 @@ float3 Colorize(uint groupIndex, uint numHits, float4 hitPos[5], float4 hitNorma
 	float4 ftemp;
 	float4 ftemp1;
 	float4 ftemp2;
+
+	uint numSets = (g_numTexTriangles / (MAX_PRIMITIVES + 1)) + 1;
+	uint minTexNum = min(g_numTexTriangles, MAX_PRIMITIVES);
+
+
+
 	bool LightBlock[MAX_PRIMITIVES*NUM_BOUNCES];
 
 	if (groupIndex < g_numPointLights)
-		TempCache3[groupIndex] = asfloat(pointLightData.Load4(groupIndex * 16)); // Load the pointlight data.
+		ftemp = asfloat(pointLightData.Load4(groupIndex * 16)); // Load the pointlight data.
 
-	if (groupIndex < g_numSpheres)
+	for (uint i = 0; i < NUM_BOUNCES; i++)
 	{
-		ftemp = asfloat(sphereData.Load4(groupIndex * 16)); // Pos_radius
+		for (uint li = 0; li < g_numPointLights; li++)
+		{
+
+			LightBlock[li*MAX_PRIMITIVES + i] = true;
+		}
 	}
 
+	if (groupIndex < g_numPointLights)
+		TempCache3[groupIndex] = ftemp; // Load the pointlight data.
 
+	// Prefetch tex tri data
+	if (groupIndex < minTexNum)
+	{
+		ftemp = asfloat(texTriangleData.Load4(groupIndex * 16)); // p0
+		ftemp1 = asfloat(texTriangleData.Load4(groupIndex * 16 + g_numTexTriangles * 16)); // p1
+		ftemp2 = asfloat(texTriangleData.Load4(groupIndex * 16 + g_numTexTriangles * 32)); // p2
+	}
 
 
 	for (uint i = 0; i < NUM_BOUNCES; i++)
 	{
+
+		Ray sunRay;
+		sunRay.Origin = hitPos[i].xyz;
+		sunRay.Origin += hitNormal[i].xyz*0.01f;
+
+
+		for (uint set = 0; set < numSets; set++)
+		{
+			uint numTexTri = min((numSets - set - 1)* MAX_PRIMITIVES + minTexNum, MAX_PRIMITIVES); // Number of triangles in this set
+			uint nNumTexTri = min((numSets - set - 2)* MAX_PRIMITIVES + minTexNum, MAX_PRIMITIVES); // Number of triangles in next set
+			uint nset = set + 1;
+
+
+			// Share the prefetched data with group.
+			if (groupIndex < numTexTri)
+			{
+				TempCache[groupIndex] = ftemp;
+				TempCache1[groupIndex] = ftemp1;
+				TempCache2[groupIndex] = ftemp2;
+			}
+			GroupMemoryBarrierWithGroupSync();
+
+			if (nset == numSets)
+			{
+				if (groupIndex < g_numSpheres)
+				{
+					// Prefetch spheres
+					ftemp = asfloat(sphereData.Load4(groupIndex * 16)); // Pos_radius
+				}
+			}
+			else
+			{
+				// Prefetch next set of tex tri data
+				if (groupIndex < nNumTexTri)
+				{
+					ftemp = asfloat(texTriangleData.Load4(groupIndex * 16 + nset * 16 * MAX_PRIMITIVES)); // p0
+					ftemp1 = asfloat(texTriangleData.Load4(groupIndex * 16 + g_numTexTriangles * 16 + nset * 16 * MAX_PRIMITIVES)); // p1
+					ftemp2 = asfloat(texTriangleData.Load4(groupIndex * 16 + g_numTexTriangles * 32 + nset * 16 * MAX_PRIMITIVES)); // p2
+				}
+			}
+
+			if (i < numHits)
+			{
+				for (uint li = 0; li < g_numPointLights; li++)
+				{
+					sunRay.Dir = (TempCache3[li].xyz - sunRay.Origin);
+					float t = length(sunRay.Dir);
+					sunRay.Dir = normalize(sunRay.Dir);
+
+					float a = dot(hitNormal[i].xyz, sunRay.Dir);
+
+					if (a > 0.0f)
+					{
+						float tt;
+						for (uint j = 0; j < numTexTri; j++)
+						{
+							if (RayTriangleIntersectFrontFaceCullNoData(sunRay, TempCache[j].xyz, TempCache1[j].xyz, TempCache2[j].xyz, tt))
+							{
+								if (tt < t)
+									LightBlock[li*MAX_PRIMITIVES + i] = false;
+							}
+						}
+					}
+
+
+
+
+
+				}
+			}
+			GroupMemoryBarrierWithGroupSync();
+		}
+
+
+
+
 		if (groupIndex < g_numSpheres)
 		{
 			TempCache[groupIndex] = ftemp;
@@ -499,18 +626,11 @@ float3 Colorize(uint groupIndex, uint numHits, float4 hitPos[5], float4 hitNorma
 		}
 
 
-		Ray sunRay;
-		sunRay.Origin = hitPos[i].xyz;
-		sunRay.Origin += hitNormal[i].xyz*0.01f;
-
-
 		if (i < numHits)
 		{
 
 			for (uint li = 0; li < g_numPointLights; li++)
 			{
-
-				LightBlock[li*MAX_PRIMITIVES + i] = true;
 
 				sunRay.Dir = TempCache3[li].xyz - sunRay.Origin;
 				float len = length(sunRay.Dir);
@@ -553,10 +673,12 @@ float3 Colorize(uint groupIndex, uint numHits, float4 hitPos[5], float4 hitNorma
 
 		GroupMemoryBarrierWithGroupSync();
 
-		if (groupIndex < g_numSpheres)
+		// Prefetch tex tri data
+		if (groupIndex < minTexNum)
 		{
-			// Prefetch spheres
-			ftemp = asfloat(sphereData.Load4(groupIndex * 16)); // Pos_radius
+			ftemp = asfloat(texTriangleData.Load4(groupIndex * 16)); // p0
+			ftemp1 = asfloat(texTriangleData.Load4(groupIndex * 16 + g_numTexTriangles * 16)); // p1
+			ftemp2 = asfloat(texTriangleData.Load4(groupIndex * 16 + g_numTexTriangles * 32)); // p2
 		}
 
 
@@ -566,18 +688,21 @@ float3 Colorize(uint groupIndex, uint numHits, float4 hitPos[5], float4 hitNorma
 
 			for (uint li = 0; li < g_numPointLights; li++)
 			{
-				sunRay.Dir = normalize(TempCache3[li].xyz - sunRay.Origin);
-				bool c = true;
+				sunRay.Dir = (TempCache3[li].xyz - sunRay.Origin);
+				float t = length(sunRay.Dir);
+				sunRay.Dir = normalize(sunRay.Dir);
 
 				float a = dot(hitNormal[i].xyz, sunRay.Dir);
 
 				if (a > 0.0f)
 				{
+					float tt;
 					for (uint j = 0; j < g_numTriangles; j++)
 					{
-						if (RayTriangleIntersectFrontFaceCullNoData(sunRay, TempCache[j].xyz, TempCache1[j].xyz, TempCache2[j].xyz))
+						if (RayTriangleIntersectFrontFaceCullNoData(sunRay, TempCache[j].xyz, TempCache1[j].xyz, TempCache2[j].xyz, tt))
 						{
-							LightBlock[li*MAX_PRIMITIVES + i] = false;
+							if(tt < t)
+								LightBlock[li*MAX_PRIMITIVES + i] = false;
 						}
 					}
 				}
@@ -633,7 +758,7 @@ float3 Colorize(uint groupIndex, uint numHits, float4 hitPos[5], float4 hitNorma
 	for (uint i = 0; i < NUM_BOUNCES; i++)
 	{
 		if (i < numHits)
-			color = saturate(color + hitColor[i].xyz * hitColor[i].w * ((NUM_BOUNCES - i) / ((float)NUM_BOUNCES*((i*3.0f) + 1))));
+			color = saturate(color + hitColor[i].xyz * hitColor[i].w * ((NUM_BOUNCES - i) / ((float)NUM_BOUNCES*((i*1.0f) + 1))));
 
 
 	}
