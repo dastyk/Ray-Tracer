@@ -20,6 +20,7 @@ public:
 	const SceneData::Sphere& GetSpheres()const;
 	const SceneData::Triangle& GetTriangles()const;
 	const SceneData::PointLight& GetPointLights()const;
+	const SceneData::SpotLights& GetSpotLights()const;
 	const SceneData::TexturedTriangle& GetTexturedTriangles()const;
 	Camera* GetCamera();
 private:
@@ -27,7 +28,7 @@ private:
 	const void _AddTriangle(const DirectX::XMFLOAT3& p0, const DirectX::XMFLOAT3& p1, const DirectX::XMFLOAT3& p2, const DirectX::XMFLOAT3& color);
 	const void _AddRandomSphere();
 	const void _AddPointLight(const DirectX::XMFLOAT3& pos, float luminosity);
-
+	const void _AddSpotLight(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& dir, float range, float theta, float phi, float luminosity);
 	const void _Rotate(DirectX::XMFLOAT4& pos, float amount);
 
 
@@ -42,7 +43,7 @@ private:
 	SceneData::Triangle _triangles;
 	SceneData::PointLight _pointLights;
 	SceneData::TexturedTriangle _textureTriangles;
-
+	SceneData::SpotLights _spotLights;
 	SceneData::CountData _numObjects;
 
 

@@ -46,6 +46,7 @@ ComputeBuffer*				g_csPointLightBuffer	= nullptr;
 ComputeBuffer*				g_csTexTriangleBuffer	= nullptr;
 ComputeTexture*				g_csTexture1			= nullptr;
 ID3D11SamplerState*			g_sampler				= nullptr;
+ComputeBuffer*				g_csSpotLightBuffer		= nullptr;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -183,6 +184,7 @@ HRESULT Init()
 	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::triangleSize, SceneData::maxTriangles, true, false, nullptr, true);
 	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::pointLightSize, SceneData::maxPointLights, true, false, nullptr, true);
 	g_csTexTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::texturedTriangleSize, cdata.numTexTriangles, true, false, nullptr, true);
+	g_csSpotLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::spotLightSize, cdata.numSpotLights, true, false, nullptr, true);
 
 	// Copy sphere data to device
 	const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
@@ -244,6 +246,19 @@ HRESULT Init()
 	g_csTexTriangleBuffer->Unmap();
 
 
+	// Copy spotlight data
+	const SceneData::SpotLights& spotLightData_h = g_Scene->GetSpotLights();
+	void* spotLightData_d = g_csSpotLightBuffer->Map<void>();
+
+	memcpy(spotLightData_d, spotLightData_h.Position3_Luminosity1, sizeof(XMFLOAT4)*cdata.numSpotLights);
+	spotLightData_d = (XMFLOAT4*)spotLightData_d + cdata.numSpotLights;
+	memcpy(spotLightData_d, spotLightData_h.Direction3_Range1, sizeof(XMFLOAT4)*cdata.numSpotLights);
+	spotLightData_d = (XMFLOAT4*)spotLightData_d + cdata.numSpotLights;
+	memcpy(spotLightData_d, spotLightData_h.Angles, sizeof(XMFLOAT2)*cdata.numSpotLights);
+
+	g_csSpotLightBuffer->Unmap();
+
+
 	g_csTexture1 = g_ComputeSys->CreateTexture(L"Textures/chino.jpg");
 
 
@@ -281,6 +296,7 @@ HRESULT Init()
 void Shutdown()
 {
 	SAFE_RELEASE(g_sampler);
+	SAFE_DELETE(g_csSpotLightBuffer);
 	SAFE_DELETE(g_csTexture1);
 	SAFE_DELETE(g_csTexTriangleBuffer);
 	SAFE_DELETE(g_csPointLightBuffer);

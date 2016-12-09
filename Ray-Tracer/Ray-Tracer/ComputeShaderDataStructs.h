@@ -7,9 +7,10 @@
 
 namespace SceneData
 {
-	static const uint32_t maxSpheres = 256;
-	static const uint32_t maxTriangles = 256;
-	static const uint32_t maxPointLights = 256;
+	static const uint32_t maxSpheres = 128;
+	static const uint32_t maxTriangles = 128;
+	static const uint32_t maxPointLights = 128;
+	static const uint32_t maxSpotLights = 128;
 
 	struct CameraData
 	{
@@ -30,6 +31,7 @@ namespace SceneData
 		uint32_t numTriangles;
 		uint32_t numPointLights;
 		uint32_t numTexTriangles;
+		uint32_t numSpotLights;
 	};
 
 	static const uint32_t sphereSize = sizeof(DirectX::XMFLOAT4) * 2;
@@ -63,6 +65,17 @@ namespace SceneData
 	struct PointLight
 	{
 		DirectX::XMFLOAT4 Position3_Luminosity1[maxPointLights];
+	};
+
+	static const uint32_t spotLightSize = sizeof(DirectX::XMFLOAT4)*2 + sizeof(DirectX::XMFLOAT2);
+	struct SpotLights
+	{
+
+			DirectX::XMFLOAT4 Position3_Luminosity1[maxSpotLights];
+			DirectX::XMFLOAT4 Direction3_Range1[maxSpotLights];
+			DirectX::XMFLOAT2 Angles[maxSpotLights];
+
+		
 	};
 }
 #endif

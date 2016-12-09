@@ -51,6 +51,7 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 
 	//_AddSphere(XMFLOAT3(10.0f, 0.0f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
 	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.5f);
+	_AddSpotLight(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), 10.0f, 10.0f, 12.0f, 0.5f);
 
 	std::vector<const char*> files;
 	vector<std::pair<ArfData::Data, ArfData::DataPointers>> data;
@@ -142,6 +143,11 @@ const SceneData::PointLight& Scene::GetPointLights() const
 	return _pointLights;
 }
 
+const SceneData::SpotLights & Scene::GetSpotLights() const
+{
+	return _spotLights;
+}
+
 const SceneData::TexturedTriangle & Scene::GetTexturedTriangles() const
 {
 	return _textureTriangles;
@@ -188,6 +194,17 @@ const void Scene::_AddPointLight(const DirectX::XMFLOAT3 & pos, float luminosity
 	{
 		_pointLights.Position3_Luminosity1[_numObjects.numPointLights] = XMFLOAT4(pos.x, pos.y, pos.z, luminosity);
 		_numObjects.numPointLights++;
+	}
+}
+
+const void Scene::_AddSpotLight(const DirectX::XMFLOAT3 & pos, const DirectX::XMFLOAT3 & dir, float range, float theta, float phi, float luminosity)
+{
+	if (_numObjects.numSpotLights < SceneData::maxSpotLights)
+	{
+		_spotLights.Position3_Luminosity1[_numObjects.numSpotLights] = XMFLOAT4(pos.x, pos.y, pos.z, luminosity);
+		_spotLights.Direction3_Range1[_numObjects.numSpotLights] = XMFLOAT4(dir.x, dir.y, dir.z, range);
+		_spotLights.Angles[_numObjects.numSpotLights] = XMFLOAT2(theta, phi);
+		_numObjects.numSpotLights++;
 	}
 }
 
