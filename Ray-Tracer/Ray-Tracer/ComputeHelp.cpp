@@ -163,15 +163,24 @@ ID3D11Buffer* ComputeWrap::CreateStructuredBuffer(UINT uElementSize, UINT uCount
     ZeroMemory( &desc, sizeof(desc) );
     desc.BindFlags = 0;
 	
-	if(bUAV)	desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+	if (bUAV)
+	{
+		desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		//if (cpuAccess)
+		//{
+		//	desc.BindFlags |= D3D11_BIND_STREAM_OUTPUT;
+		//	desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		//	desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
+		//}
+	}
 	if(bSRV)	desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
     
 	UINT bufferSize = uElementSize * uCount;
 	desc.ByteWidth = bufferSize < 16 ? 16 : bufferSize;
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     desc.StructureByteStride = uElementSize;
-	desc.CPUAccessFlags = cpuAccess ? D3D11_CPU_ACCESS_WRITE : 0;
-	desc.Usage = cpuAccess ? D3D11_USAGE_DYNAMIC : pInitData ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT;
+	desc.CPUAccessFlags = cpuAccess ? D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ : 0;
+	desc.Usage = cpuAccess ? D3D11_USAGE_DEFAULT : pInitData ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT;
 
     if ( pInitData )
     {

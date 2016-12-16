@@ -22,6 +22,11 @@ public:
 	const SceneData::PointLight& GetPointLights()const;
 	const SceneData::SpotLights& GetSpotLights()const;
 	const SceneData::TexturedTriangle& GetTexturedTriangles()const;
+
+	const void UpdateSphere(uint32_t ID);
+	const void UpdateTriangle(uint32_t ID);
+	const void UpdateTexTriangle(const DirectX::XMFLOAT3& pos);
+
 	Camera* GetCamera();
 private:
 	const void _AddSphere(const DirectX::XMFLOAT3& pos, float radius, const DirectX::XMFLOAT3& color);

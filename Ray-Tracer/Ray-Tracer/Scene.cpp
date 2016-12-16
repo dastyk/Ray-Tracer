@@ -9,7 +9,7 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	srand(1337U);
 	memset(&_numObjects, 0, sizeof(SceneData::CountData));
 //	_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
+	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(1.0f, 0.0f, 0.0f));
 
 
 	_AddTriangle(XMFLOAT3(1.5f, 0.0f, 0.0f), XMFLOAT3(1.5f, 3.0f, 4.0f), XMFLOAT3(3.0f, -2.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
@@ -45,25 +45,28 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	//_AddRandomSphere();
 	//_AddRandomSphere();
 	//_AddRandomSphere();
-	/*for(int i = 0;i  <10; i++)
-		_AddRandomSphere();*/
+	//for(int i = 0;i  < 50; i++)
+	//	_AddRandomSphere();
 	//_AddPointLight(XMFLOAT3(-5.0f, 7.0, -5.0f), 0.5f);
 
-	//_AddSphere(XMFLOAT3(10.0f, 0.0f, 3.0f), 0.5f, XMFLOAT3(0.0f, 1.0f, 0.0f));
-	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.5f);
-	_AddSpotLight(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), 10.0f, 10.0f, 12.0f, 0.5f);
+	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.25f);
+	_AddSpotLight(XMFLOAT3(5.0f, 0.0f, -5.0f), XMFLOAT3(-2, 0.0f, 2), 30.0f, 10.0f, 30.0f, 1.0f);
 
 	std::vector<const char*> files;
 	vector<std::pair<ArfData::Data, ArfData::DataPointers>> data;
 	vector<XMMATRIX> mats;
-	mats.push_back(XMMatrixIdentity());
+	mats.push_back(XMMatrixIdentity());// *XMMatrixScaling(0.8f, 0.8f, 0.8f));
 	files.push_back("Meshes/Cube.obj");
-	mats.push_back(XMMatrixTranslation(0.0f, -5.0f, 0.0f));
+	/*mats.push_back(XMMatrixTranslation(0.0f, -5.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
 	mats.push_back(XMMatrixTranslation(-5.0f, 0.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
 	mats.push_back(XMMatrixTranslation(0.0f, 5.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
+	mats.push_back(XMMatrixTranslation(-5.0f, 5.0f, 0.0f));
+	files.push_back("Meshes/Cube.obj");
+	mats.push_back(XMMatrixTranslation(-5.0f, -5.0f, 0.0f));
+	files.push_back("Meshes/Cube.obj");*/
 	_LoadMeshes(files, data);
 
 	_Interleave(data, mats);
@@ -94,7 +97,7 @@ uint8_t Scene::Update(float deltaTime)
 		PostQuitMessage(0);
 
 	float step = 10.0f * deltaTime;
-	float msen = 0.001f;
+	float msen = 0.005f;
 	if (_input.IsKeyDown(Input::Keys::W))
 		_camera.MoveForward(step);
 	if (_input.IsKeyDown(Input::Keys::S))
@@ -110,15 +113,17 @@ uint8_t Scene::Update(float deltaTime)
 	if (_input.IsKeyDown(Input::Keys::LeftControl))
 		_camera.MoveUp(-step);
 
-	int32_t xd, yd;
-	_input.GetMouseDiff(xd, yd);
-	if (xd)
-		_camera.RotateYaw(-xd*msen);
-	if (yd)
-		_camera.RotatePitch(-yd*msen);
+	if (_input.IsKeyDown(Input::Keys::LButton))
+	{
+		int32_t xd, yd;
+		_input.GetMouseDiff(xd, yd);
+		if (xd)
+			_camera.RotateYaw(-xd*msen);
+		if (yd)
+			_camera.RotatePitch(-yd*msen);
+	}
 
-
-	_Rotate(_spheres.Position3_Radius_1[1], deltaTime*0.5);
+	_Rotate(_spheres.Position3_Radius_1[0], deltaTime*0.5);
 	_Rotate(_pointLights.Position3_Luminosity1[0], deltaTime*0.3f);
 	return 1;
 }
@@ -151,6 +156,36 @@ const SceneData::SpotLights & Scene::GetSpotLights() const
 const SceneData::TexturedTriangle & Scene::GetTexturedTriangles() const
 {
 	return _textureTriangles;
+}
+
+const void Scene::UpdateSphere(uint32_t ID)
+{
+	if (ID < _numObjects.numSpheres)
+	{
+		XMFLOAT3 Color = XMFLOAT3((rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f);
+		_spheres.Color[ID] = XMFLOAT4(Color.x, Color.y, Color.z, 1.0f);
+	}
+}
+
+const void Scene::UpdateTriangle(uint32_t ID)
+{
+	if (ID < _numObjects.numTriangles)
+	{
+		XMFLOAT3 Color = XMFLOAT3((rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f);
+		_triangles.Color[ID] = XMFLOAT4(Color.x, Color.y, Color.z, 1.0f);
+	}
+}
+
+const void Scene::UpdateTexTriangle(const XMFLOAT3& pos)
+{
+
+		XMFLOAT3 Color = XMFLOAT3((rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f);
+		//XMFLOAT3 p0 = XMFLOAT3(_textureTriangles.p0_textureID[ID].x, _textureTriangles.p0_textureID[ID].y, _textureTriangles.p0_textureID[ID].z);
+		//XMFLOAT3 p1 = XMFLOAT3(_textureTriangles.p1[ID].x, _textureTriangles.p1[ID].y, _textureTriangles.p1[ID].z);
+		//XMFLOAT3 p2 = XMFLOAT3(_textureTriangles.p2[ID].x, _textureTriangles.p2[ID].y, _textureTriangles.p2[ID].z);
+		_AddSphere(pos, 0.1f, Color);
+	
+	return void();
 }
 
 Camera * Scene::GetCamera()
@@ -202,9 +237,15 @@ const void Scene::_AddSpotLight(const DirectX::XMFLOAT3 & pos, const DirectX::XM
 	if (_numObjects.numSpotLights < SceneData::maxSpotLights)
 	{
 		_spotLights.Position3_Luminosity1[_numObjects.numSpotLights] = XMFLOAT4(pos.x, pos.y, pos.z, luminosity);
-		_spotLights.Direction3_Range1[_numObjects.numSpotLights] = XMFLOAT4(dir.x, dir.y, dir.z, range);
-		_spotLights.Angles[_numObjects.numSpotLights] = XMFLOAT2(theta, phi);
+
+		XMVECTOR n = XMLoadFloat3(&dir);
+		n = XMVector3Normalize(n);
+		XMStoreFloat4(&_spotLights.Direction3_Range1[_numObjects.numSpotLights], n);
+
+		_spotLights.Direction3_Range1[_numObjects.numSpotLights].w = range;
+		_spotLights.Angles[_numObjects.numSpotLights] = XMFLOAT2(DirectX::XMScalarCos(theta*0.0174532925), DirectX::XMScalarCos(phi*0.0174532925));
 		_numObjects.numSpotLights++;
+		
 	}
 }
 

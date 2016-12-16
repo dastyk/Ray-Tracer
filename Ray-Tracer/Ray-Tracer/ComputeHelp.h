@@ -62,7 +62,16 @@ public:
 
 		return p;
 	}
+	template<class T>
+	T* MapRead()
+	{
+		D3D11_MAPPED_SUBRESOURCE MappedResource;
+		T* p = nullptr;
+		if (SUCCEEDED(_D3DContext->Map(_Resource, 0, D3D11_MAP_READ, 0, &MappedResource)))
+			p = (T*)MappedResource.pData;
 
+		return p;
+	}
 	void Unmap()
 	{
 		_D3DContext->Unmap(_Resource, 0);

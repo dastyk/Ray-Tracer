@@ -1,10 +1,11 @@
-
+#define NOMINMAX
 #include "stdafx.h"
 
 #include "ComputeHelp.h"
 #include "D3D11Timer.h"
 #include "Input.h"
 #include "Scene.h"
+#include <algorithm>
 
 using namespace DirectX;
 
@@ -45,9 +46,15 @@ ComputeBuffer*				g_csTriangleBuffer		= nullptr;
 ComputeBuffer*				g_csPointLightBuffer	= nullptr;
 ComputeBuffer*				g_csTexTriangleBuffer	= nullptr;
 ComputeTexture*				g_csTexture1			= nullptr;
+ComputeTexture*				g_csNormal1				= nullptr;
 ID3D11SamplerState*			g_sampler				= nullptr;
 ComputeBuffer*				g_csSpotLightBuffer		= nullptr;
 
+ComputeShader*				g_pickingIntShader		= nullptr;
+ComputeShader*				g_pickingCmpShader		= nullptr;
+ID3D11Buffer*				g_pickIntBuffer			= nullptr;
+ID3D11Buffer*				g_pickCompBuffer		= nullptr;
+ComputeBuffer*				g_pickBuff[2]			= { nullptr, nullptr };
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
@@ -184,7 +191,7 @@ HRESULT Init()
 	g_csTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::triangleSize, SceneData::maxTriangles, true, false, nullptr, true);
 	g_csPointLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::pointLightSize, SceneData::maxPointLights, true, false, nullptr, true);
 	g_csTexTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::texturedTriangleSize, cdata.numTexTriangles, true, false, nullptr, true);
-	g_csSpotLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::spotLightSize, cdata.numSpotLights, true, false, nullptr, true);
+	g_csSpotLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::spotLightSize, SceneData::maxSpotLights , true, false, nullptr, true);
 
 	// Copy sphere data to device
 	const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
@@ -251,15 +258,16 @@ HRESULT Init()
 	void* spotLightData_d = g_csSpotLightBuffer->Map<void>();
 
 	memcpy(spotLightData_d, spotLightData_h.Position3_Luminosity1, sizeof(XMFLOAT4)*cdata.numSpotLights);
-	spotLightData_d = (XMFLOAT4*)spotLightData_d + cdata.numSpotLights;
+	spotLightData_d = (XMFLOAT4*)spotLightData_d + SceneData::maxSpotLights;
 	memcpy(spotLightData_d, spotLightData_h.Direction3_Range1, sizeof(XMFLOAT4)*cdata.numSpotLights);
-	spotLightData_d = (XMFLOAT4*)spotLightData_d + cdata.numSpotLights;
+	spotLightData_d = (XMFLOAT4*)spotLightData_d + SceneData::maxSpotLights;
 	memcpy(spotLightData_d, spotLightData_h.Angles, sizeof(XMFLOAT2)*cdata.numSpotLights);
 
 	g_csSpotLightBuffer->Unmap();
 
 
 	g_csTexture1 = g_ComputeSys->CreateTexture(L"Textures/chino.jpg");
+	g_csNormal1 = g_ComputeSys->CreateTexture(L"Textures/face_norm.jpg");
 
 
 	D3D11_SAMPLER_DESC samd;
@@ -283,21 +291,46 @@ HRESULT Init()
 		g_csTriangleBuffer->GetResourceView(),
 		g_csPointLightBuffer->GetResourceView(),
 		g_csTexTriangleBuffer->GetResourceView(),
-		g_csTexture1->GetResourceView()
+		g_csSpotLightBuffer->GetResourceView(),
+		nullptr,
+		g_csTexture1->GetResourceView(),
+		g_csNormal1->GetResourceView()
 	};
 
 	ID3D11Buffer* cbuffers[] = { g_csCountbuffer };
-	g_DeviceContext->CSSetShaderResources(0, 5, srvs);
+	g_DeviceContext->CSSetShaderResources(0, 8, srvs);
 	g_DeviceContext->CSSetConstantBuffers(1, 1, cbuffers);
+
+	g_pickingIntShader = g_ComputeSys->CreateComputeShader(_T("Shaders/PickingIntersection.fx"), nullptr, "main", nullptr);
+	g_pickingCmpShader = g_ComputeSys->CreateComputeShader(_T("Shaders/PickingComp.fx"), nullptr, "main", nullptr);
+
+
+	g_pickIntBuffer = g_ComputeSys->CreateConstantBuffer(sizeof(PickingData::Ray), nullptr, true);
+	PickingData::CompData pickData;
+
+	pickData.numPrimitives = std::min({ cdata.numSpheres, cdata.numTexTriangles, cdata.numTriangles });
+	pickData.offset = pickData.numPrimitives % 2;
+	pickData.numPrimitives = pickData.numPrimitives / 2;
+	g_pickCompBuffer = g_ComputeSys->CreateConstantBuffer(sizeof(PickingData::CompData), &pickData, true);
+
+	g_pickBuff[0] = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(PickingData::PickResult), (std::max(SceneData::maxTriangles, cdata.numTexTriangles) / 1025 + 1) * 1024, true, true, nullptr, true);
+	g_pickBuff[1] = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(PickingData::PickResult), (std::max(SceneData::maxTriangles, cdata.numTexTriangles) / 1025 + 1) * 1024, true, true, nullptr, true);
 
 	return S_OK;
 }
 
 void Shutdown()
 {
+	SAFE_DELETE(g_pickBuff[0]);
+	SAFE_DELETE(g_pickBuff[1]);
+	SAFE_RELEASE(g_pickIntBuffer);
+	SAFE_RELEASE(g_pickCompBuffer);
 	SAFE_RELEASE(g_sampler);
+	SAFE_DELETE(g_pickingIntShader);
+	SAFE_DELETE(g_pickingCmpShader);
 	SAFE_DELETE(g_csSpotLightBuffer);
 	SAFE_DELETE(g_csTexture1);
+	SAFE_DELETE(g_csNormal1);
 	SAFE_DELETE(g_csTexTriangleBuffer);
 	SAFE_DELETE(g_csPointLightBuffer);
 	SAFE_DELETE(g_csTriangleBuffer);
@@ -317,9 +350,199 @@ void Shutdown()
 		
 }
 
+void Picking()
+{
+	int x, y;
+	g_Input->GetMousePos(x, y);
+	auto cam = g_Scene->GetCamera();
+	float u = (2 * ((x + 0.5f) / g_Width) - 1) * std::tanf(cam->GetFov() / 2 * DirectX::XM_PI / 180) * cam->GetAspect();
+	float v = (1 - 2 * ((y + 0.5f) / g_Height)) * tan(cam->GetFov() / 2 * DirectX::XM_PI / 180);
+
+	XMVECTOR p1 = XMVectorSet(u*cam->GetNearP(), v*cam->GetNearP(), cam->GetNearP(), 1.0f);
+	XMVECTOR p2 = XMVectorSet(u*cam->GetFarP(), v*cam->GetFarP(), cam->GetFarP(), 1.0f);
+	XMMATRIX mat = XMLoadFloat4x4(&cam->GetViewInv());
+
+	p1 = XMVector4Transform(p1, mat);
+	p2 = XMVector4Transform(p2, mat);
+
+	XMVECTOR pos = XMLoadFloat3(&cam->GetPosition());
+
+
+	D3D11_MAPPED_SUBRESOURCE mappedData;
+	
+
+
+
+
+	g_DeviceContext->Map(g_pickIntBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+	PickingData::Ray* ray = (PickingData::Ray*)mappedData.pData;
+
+	XMStoreFloat4(&ray->dir, XMVector3Normalize(p2 - p1));
+	p1 = XMVector3Normalize(p1 - pos);
+	XMStoreFloat4(&ray->pos, pos);
+
+	g_DeviceContext->Unmap(g_pickIntBuffer, 0);
+
+	ID3D11Buffer* cbuffers[] = { g_pickIntBuffer };
+	g_DeviceContext->CSSetConstantBuffers(2, 1, cbuffers);
+
+	ID3D11UnorderedAccessView* nulluav[] = { nullptr };
+	
+	ID3D11UnorderedAccessView* uav[] = { g_pickBuff[0]->GetUnorderedAccessView() };
+
+	g_DeviceContext->CSSetUnorderedAccessViews(0, 1, uav, nullptr);
+	g_pickingIntShader->Set();
+	const SceneData::CountData& cdata = g_Scene->GetCounts();
+	
+	uint32_t maxPrim = std::max({ cdata.numSpheres, cdata.numTexTriangles, cdata.numTriangles });
+	uint32_t offset = maxPrim % 2;
+	uint32_t numGroups = maxPrim / 1025 + 1;;
+	g_DeviceContext->Dispatch(numGroups, 1, 1);
+
+	PickingData::PickResult data[1024];
+
+	void* data_d = g_pickBuff[0]->MapRead<void>();
+	memcpy(data, data_d, 1024 * sizeof(PickingData::PickResult));
+	g_pickBuff[0]->Unmap();
+
+	ID3D11ShaderResourceView* srvs[1];
+	uint32_t halfmax = maxPrim / 2;
+	g_pickingCmpShader->Set();
+	uint32_t index = 0;
+	while(halfmax >= 32)
+	{
+		srvs[0] = g_pickBuff[index % 2]->GetResourceView();
+		uav[0] = g_pickBuff[(index + 1) % 2]->GetUnorderedAccessView();
+		g_DeviceContext->CSSetShaderResources(5, 1, srvs);
+		g_DeviceContext->CSSetUnorderedAccessViews(0, 1, uav, nullptr);
+
+		g_DeviceContext->Map(g_pickCompBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+		PickingData::CompData* cdata_d = (PickingData::CompData*)mappedData.pData;
+
+		cdata_d->numPrimitives = halfmax;
+		cdata_d->offset = offset;
+
+		g_DeviceContext->Unmap(g_pickCompBuffer, 0);
+
+		ID3D11Buffer* cbuffers[] = { g_pickCompBuffer };
+		g_DeviceContext->CSSetConstantBuffers(2, 1, cbuffers);
+		
+
+		numGroups = halfmax / 1025 + 1;
+
+		g_DeviceContext->Dispatch(numGroups, 1, 1);
+
+
+		data_d = g_pickBuff[(index + 1) % 2]->MapRead<void>();
+		memcpy(data, data_d, 1024 * sizeof(PickingData::PickResult));
+		g_pickBuff[(index + 1) % 2]->Unmap();
+
+		halfmax /= 2;
+		index++;
+
+		
+	}
+	g_pickingCmpShader->Unset();
+	g_DeviceContext->CSSetUnorderedAccessViews(0, 1, nulluav, nullptr);
+
+	float t = data[0].t;
+	int ID = data[0].ID;
+	uint32_t Type = data[0].type;
+	XMFLOAT3 fpos = data[0].Pos;
+	for (uint32_t i = 1; i < offset + halfmax*2; i++)
+	{
+		if (data[i].t < t)
+		{
+			t = data[i].t;
+			ID = data[i].ID;
+			Type = data[i].type;
+			fpos = data[i].Pos;
+		}
+	}
+	
+
+	// Do something with the picking. 
+	if (ID >= 0)
+	{
+		switch (Type)
+		{
+		case 0:
+		{
+			g_Scene->UpdateSphere(ID);
+			break;
+		}
+		case 1:
+		{
+			g_Scene->UpdateTriangle(ID);
+			break;
+		}
+		case 2:
+		{
+			g_Scene->UpdateTexTriangle(fpos);
+			break;
+		}
+		}
+		const SceneData::CountData& cdata2 = g_Scene->GetCounts();
+		g_DeviceContext->Map(g_csCountbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData);
+		memcpy(mappedData.pData, &cdata2, sizeof(cdata2));
+		g_DeviceContext->Unmap(g_csCountbuffer, 0);
+		// Copy sphere data to device
+		const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
+		void* sphereData_d = g_csSphereBuffer->Map<void>();
+
+		memcpy(sphereData_d, sphereData_h.Position3_Radius_1, sizeof(XMFLOAT4)*cdata2.numSpheres);
+		sphereData_d = (XMFLOAT4*)sphereData_d + SceneData::maxSpheres;
+
+		memcpy(sphereData_d, sphereData_h.Color, sizeof(XMFLOAT4)*cdata2.numSpheres);
+
+		g_csSphereBuffer->Unmap();
+
+
+		// Copy triangle data to device
+		const SceneData::Triangle& triangleData_h = g_Scene->GetTriangles();
+
+		void* triangleData_d = g_csTriangleBuffer->Map<void>();
+
+		memcpy(triangleData_d, triangleData_h.p0, sizeof(XMFLOAT4)*cdata2.numTriangles);
+		triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+		memcpy(triangleData_d, triangleData_h.p1, sizeof(XMFLOAT4)*cdata2.numTriangles);
+		triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+		memcpy(triangleData_d, triangleData_h.p2, sizeof(XMFLOAT4)*cdata2.numTriangles);
+		triangleData_d = (XMFLOAT4*)triangleData_d + SceneData::maxTriangles;
+
+		memcpy(triangleData_d, triangleData_h.Color, sizeof(XMFLOAT4)*cdata2.numTriangles);
+
+		g_csTriangleBuffer->Unmap();
+
+
+
+		ID3D11ShaderResourceView* srvs[] = {
+			g_csSphereBuffer->GetResourceView(),
+			g_csTriangleBuffer->GetResourceView(),
+			g_csPointLightBuffer->GetResourceView(),
+			g_csTexTriangleBuffer->GetResourceView(),
+			g_csSpotLightBuffer->GetResourceView(),
+			nullptr,
+			g_csTexture1->GetResourceView(),
+			g_csNormal1->GetResourceView() 
+		};
+		g_DeviceContext->CSSetShaderResources(0, 8, srvs);
+	}
+	
+
+	
+}
+
+
+
 HRESULT Update(float deltaTime)
 {
-	g_Input->Frame();
+	if (g_Input->IsKeyPushed(Input::Keys::RButton))
+	{
+		Picking();
+	}
 
 	uint8_t change = g_Scene->Update(deltaTime);
 	
@@ -368,10 +591,21 @@ HRESULT Update(float deltaTime)
 
 
 
-		ID3D11ShaderResourceView* srvs[] = { g_csSphereBuffer->GetResourceView() ,g_csTriangleBuffer->GetResourceView() ,g_csPointLightBuffer->GetResourceView() };
-		g_DeviceContext->CSSetShaderResources(0, 3, srvs);
+		ID3D11ShaderResourceView* srvs[] = { 
+			g_csSphereBuffer->GetResourceView(),
+			g_csTriangleBuffer->GetResourceView(),
+			g_csPointLightBuffer->GetResourceView(),
+			g_csTexTriangleBuffer->GetResourceView(),
+			g_csSpotLightBuffer->GetResourceView(),
+			nullptr,
+			g_csTexture1->GetResourceView(),
+			g_csNormal1->GetResourceView()
+		};
+		g_DeviceContext->CSSetShaderResources(0, 8, srvs);
 	}
 
+	
+	g_Input->Frame();
 
 	return S_OK;
 }
@@ -447,7 +681,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	QueryPerformanceCounter((LARGE_INTEGER*)&prevTimeStamp);
 
 
- g_Input->LockMouseToCenter(true);
+ //g_Input->LockMouseToCenter(true);
 
  uint32_t frameCount = 0;
  uint32_t pCount = 0;

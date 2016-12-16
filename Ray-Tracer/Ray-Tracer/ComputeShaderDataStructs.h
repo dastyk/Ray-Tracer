@@ -9,8 +9,8 @@ namespace SceneData
 {
 	static const uint32_t maxSpheres = 128;
 	static const uint32_t maxTriangles = 128;
-	static const uint32_t maxPointLights = 128;
-	static const uint32_t maxSpotLights = 128;
+	static const uint32_t maxPointLights = 16;
+	static const uint32_t maxSpotLights = 16;
 
 	struct CameraData
 	{
@@ -76,6 +76,27 @@ namespace SceneData
 			DirectX::XMFLOAT2 Angles[maxSpotLights];
 
 		
+	};
+}
+
+namespace PickingData
+{
+	struct PickResult
+	{
+		DirectX::XMFLOAT3 Pos;
+		float t;
+		unsigned int type;
+		int ID;
+	};
+	struct Ray
+	{
+		DirectX::XMFLOAT4 pos;
+		DirectX::XMFLOAT4 dir;
+	};
+	struct CompData
+	{
+		unsigned int numPrimitives;
+		unsigned int offset; // Padding to get a multiple of 2.
 	};
 }
 #endif

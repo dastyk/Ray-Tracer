@@ -64,8 +64,8 @@
 			_keys[Keys::ScrollDown] = false;
 
 			for (uint32_t i = 0; i < NUM_KEYS; i++)
-				if (_keys[i])
-					_keyPressed[i] = true;
+				//if (_keys[i])
+					_keyPressed[i] = false;
 
 			return void();
 		}
@@ -306,6 +306,7 @@
 		const void Input::_KeyDown(Keys key)
 		{
 			_keys[key] = true;
+			_keyPressed[key] = true;
 			return void();
 		}
 		const void Input::_KeyUp(Keys key)
