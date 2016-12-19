@@ -49,13 +49,15 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	//	_AddRandomSphere();
 	//_AddPointLight(XMFLOAT3(-5.0f, 7.0, -5.0f), 0.5f);
 
-	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.25f);
+	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.15f);
 	_AddSpotLight(XMFLOAT3(5.0f, 0.0f, -5.0f), XMFLOAT3(-2, 0.0f, 2), 30.0f, 10.0f, 30.0f, 1.0f);
 
 	std::vector<const char*> files;
 	vector<std::pair<ArfData::Data, ArfData::DataPointers>> data;
 	vector<XMMATRIX> mats;
 	mats.push_back(XMMatrixIdentity());// *XMMatrixScaling(0.8f, 0.8f, 0.8f));
+	files.push_back("Meshes/Cube.obj");
+	mats.push_back(XMMatrixTranslation(-5.0f, 0.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
 	/*mats.push_back(XMMatrixTranslation(0.0f, -5.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");
@@ -72,7 +74,9 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 
 	std::vector<uint32_t> ids;
 	ids.push_back(0);
-
+	ids.push_back(2);
+	ids.push_back(2);
+	ids.push_back(1);
 	_Interleave(data, ids, mats);
 
 
@@ -282,6 +286,7 @@ void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointe
 
 	// Interleave data
 	uint32_t index = 0;
+	uint32_t tindex = 0;
 	for (uint32_t ID = 0; ID < data.size(); ID++)
 	{
 		auto& d = data[ID];
@@ -289,7 +294,7 @@ void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointe
 
 		for (uint32_t i = 0; i < d.first.NumSubMesh; i++)
 		{
-			for (uint32_t j = d.second.subMesh[i].faceStart; j < d.second.subMesh[i].faceCount; j++)
+			for (uint32_t j = d.second.subMesh[i].faceStart; j < d.second.subMesh[i].faceCount + d.second.subMesh[i].faceStart; j++)
 			{
 				auto& face = d.second.faces[j];
 
@@ -302,8 +307,8 @@ void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointe
 				p2 = XMVector3TransformCoord(p2, mat);
 
 				XMStoreFloat4(&_textureTriangles.p0_textureID[index], p0);
-				memcpy(&_textureTriangles.p0_textureID[index].w, &textureIDs[ID], sizeof(uint32_t));
-
+				//memcpy(&_textureTriangles.p0_textureID[index].w, &textureIDs[ID], sizeof(uint32_t));
+				_textureTriangles.p0_textureID[index].w = textureIDs[tindex];
 				XMStoreFloat4(&_textureTriangles.p1[index], p1);
 				XMStoreFloat4(&_textureTriangles.p2[index], p2);
 
@@ -330,6 +335,7 @@ void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointe
 				index++;
 
 			}
+			tindex++;
 		}
 
 

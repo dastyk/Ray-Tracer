@@ -280,7 +280,7 @@ groupshared float2 TempCache4[MAX_PRIMITIVES];
 groupshared float4 TempCache5[MAX_LIGHTS];
 
 
-#define NUM_BOUNCES 1
+#define NUM_BOUNCES 3
 #define TEX_STRIDE 128
 [numthreads(32, 32, 1)]
 void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
@@ -419,9 +419,9 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 							hitPos[n] = float4(pp, tt);
 							
 
-							float3 texC = float3(TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v, 0);
+							float3 texC = float3(TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v, TempCache[i].w);
 							hitColor[n] = float4(textures.SampleLevel(texSampler, texC, 0).rgb, 0.1f);
-
+							hitColor[n].xyz = pow(abs(hitColor[n].xyz), 1.3f);
 
 							float2 UV1 = TempCache3[i].zw - TempCache3[i].xy;
 							float2 UV2 =  TempCache4[i] - TempCache3[i].xy;
@@ -1142,7 +1142,7 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 
 		//float3 diffuseCol = f3tex2D(diffTex, texCoord);
 		//fuseCol = diffuseCol * diffuseCol;
-
+	//float4 ftempasd = asfloat(texTriangleData.Load4(0 * 16)); // p0
 
 	output[threadID.xy] = float4(color, 1.0f);// float4(ftemp.x, 0.0f, 0.0f, 1.0f);//
 

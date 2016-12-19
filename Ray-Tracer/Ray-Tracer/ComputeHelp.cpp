@@ -326,7 +326,7 @@ ComputeTexture* ComputeWrap::CreateTexture(DXGI_FORMAT dxFormat, UINT uWidth,
 	ComputeTexture* texture = new ComputeTexture();
 	texture->_D3DContext = mD3DDeviceContext;
 
-	texture->_Resource = CreateTextureResource(dxFormat, uWidth, uHeight, uRowPitch, 1, pInitData);
+	texture->_Resource = CreateTextureResource(dxFormat, uWidth, uHeight, uRowPitch, 0, 1, pInitData);
 
 	if(texture->_Resource != nullptr)
 	{
@@ -382,13 +382,12 @@ ComputeTexture * ComputeWrap::CreateTextureArray(std::vector<const wchar_t*> tex
 	if (SUCCEEDED(hr))
 	{
 		
-
 		D3D11_TEXTURE2D_DESC desc;
 		tex->GetDesc(&desc);
+	
+		DXGI_FORMAT format = desc.Format;
 
-
-
-		texture->_Resource = CreateTextureResource(desc.Format, desc.Width, desc.Height, 0, textureFilenames.size(), nullptr);
+		texture->_Resource = CreateTextureResource(desc.Format, desc.Width, desc.Height, desc.Width*8, desc.Width*desc.Height*8, textureFilenames.size(), nullptr);
 
 		if (texture->_Resource != nullptr)
 		{
@@ -399,16 +398,18 @@ ComputeTexture * ComputeWrap::CreateTextureArray(std::vector<const wchar_t*> tex
 			sourceRegion.bottom = desc.Height;
 			sourceRegion.front = 0;
 			sourceRegion.back = 1;
-
-			mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, 0, 0, 0, 0, tex, 0, nullptr);
+			
+			mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, 0, 0, 0, 0, tex, 0, &sourceRegion);
 
 			tex->Release();
 
 			for (uint32_t i = 1; i < textureFilenames.size(); i++)
 			{
 				hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilenames[i], res, nullptr);
-			/*	tex->GetDesc(&desc);*/
-				mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, i, 0, 0, 0, tex, 0, nullptr);
+				tex->GetDesc(&desc);
+				if (desc.Format != format)
+					throw "Wrong format!!";
+				mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, i, 0, 0, 0, tex, 0, &sourceRegion);
 				tex->Release();
 			}
 
@@ -419,7 +420,7 @@ ComputeTexture * ComputeWrap::CreateTextureArray(std::vector<const wchar_t*> tex
 }
 
 ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
-	UINT uWidth, UINT uHeight, UINT uRowPitch, UINT arraySize, VOID* pInitData)
+	UINT uWidth, UINT uHeight, UINT uRowPitch, UINT uSlicePitch, UINT arraySize, VOID* pInitData)
 {
 	ID3D11Texture2D* pTexture = nullptr;
 
@@ -439,6 +440,8 @@ ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = pInitData;
 	data.SysMemPitch = uRowPitch; //uWidth * 4;
+	data.SysMemSlicePitch = uSlicePitch;
+
 	HRESULT hr = mD3DDevice->CreateTexture2D(&desc, pInitData ? &data : nullptr, &pTexture);
 	if(FAILED(hr))
 	{
@@ -458,13 +461,13 @@ ID3D11ShaderResourceView* ComputeWrap::CreateTextureSRV(ID3D11Texture2D* pTextur
 	//init view description
 	D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc; 
 	ZeroMemory( &viewDesc, sizeof(viewDesc) ); 
-	
+
 	viewDesc.Format					= td.Format;
-	//viewDesc.Texture2D.MostDetailedMip = 0;
-	//viewDesc.Texture2DArray.ArraySize = td.ArraySize;
-	//viewDesc.Texture2DArray.FirstArraySlice = 0;
-	//viewDesc.Texture2DArray.MipLevels = td.MipLevels;
-	//viewDesc.Texture2DArray.MostDetailedMip = 0;
+	viewDesc.Texture2D.MostDetailedMip = 0;
+	viewDesc.Texture2DArray.ArraySize = td.ArraySize;
+	viewDesc.Texture2DArray.FirstArraySlice = 0;
+	viewDesc.Texture2DArray.MipLevels = td.MipLevels;
+	viewDesc.Texture2DArray.MostDetailedMip = 0;
 	viewDesc.ViewDimension			= array? D3D11_SRV_DIMENSION_TEXTURE2DARRAY : D3D11_SRV_DIMENSION_TEXTURE2D;
 	viewDesc.Texture2D.MipLevels	= td.MipLevels;
 

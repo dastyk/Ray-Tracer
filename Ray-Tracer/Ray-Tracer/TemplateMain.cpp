@@ -269,15 +269,16 @@ HRESULT Init()
 	//g_csTexture1 = g_ComputeSys->CreateTexture(L"Textures/Floor_Dif.png");
 
 	std::vector<const wchar_t*> textures;
-	textures.push_back(L"Textures/Floor_Dif.png");
-	textures.push_back(L"Textures/Floor_Dif.png");
-
+	textures.push_back(L"Textures/Floor_Dif1.png");
+	textures.push_back(L"Textures/Wall_Dif1.png");
+	textures.push_back(L"Textures/Wall_DifG1.png");
+	
 	g_csTexture1 = g_ComputeSys->CreateTextureArray(textures);
 
 	std::vector<const wchar_t*> normals;
-	normals.push_back(L"Textures/Floor_NM.png");
-	normals.push_back(L"Textures/Wall_NM.png");
-
+	normals.push_back(L"Textures/Floor_NM1.png");
+	normals.push_back(L"Textures/Wall_NM1.png");
+	normals.push_back(L"Textures/Wall_NMG1.png");
 	g_csNormal1 = g_ComputeSys->CreateTextureArray(normals);
 
 	//g_csNormal1 = g_ComputeSys->CreateTexture(L"Textures/Floor_NM.png");

@@ -220,7 +220,7 @@ private:
 
 	//texture functions
 	ID3D11Texture2D* CreateTextureResource(DXGI_FORMAT dxFormat,
-		UINT uWidth, UINT uHeight, UINT uRowPitch, UINT arraySize, VOID* pInitData);
+		UINT uWidth, UINT uHeight, UINT uRowPitch, UINT uSlicePitch, UINT arraySize, VOID* pInitData);
 	//ID3D11Buffer* CreateRawBuffer(UINT uSize, VOID* pInitData);
 	ID3D11ShaderResourceView* CreateTextureSRV(ID3D11Texture2D* pTexture, bool array = false);
 	ID3D11UnorderedAccessView* CreateTextureUAV(ID3D11Texture2D* pTexture);
