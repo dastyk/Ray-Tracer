@@ -375,7 +375,7 @@ ComputeTexture * ComputeWrap::CreateTextureArray(std::vector<const wchar_t*> tex
 	texture->_D3DContext = mD3DDeviceContext;
 
 	ID3D11Texture2D* tex = nullptr; 
-	ID3D11Resource** res = (ID3D11Resource**)&tex;;// = (ID3D11Resource**)&texture->_Resource;
+	ID3D11Resource** res = (ID3D11Resource**)&tex;// = (ID3D11Resource**)&texture->_Resource;
 	HRESULT hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilenames[0], res, nullptr);
 
 
@@ -400,15 +400,16 @@ ComputeTexture * ComputeWrap::CreateTextureArray(std::vector<const wchar_t*> tex
 			sourceRegion.front = 0;
 			sourceRegion.back = 1;
 
-			mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, 0, 0, 0, 0, tex, 0, &sourceRegion);
+			mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, 0, 0, 0, 0, tex, 0, nullptr);
 
 			tex->Release();
 
 			for (uint32_t i = 1; i < textureFilenames.size(); i++)
 			{
-				hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilenames[0], res, nullptr);
-				mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, i, 0, 0, 0, *res, 0, &sourceRegion);
-				(*res)->Release();
+				hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilenames[i], res, nullptr);
+			/*	tex->GetDesc(&desc);*/
+				mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, i, 0, 0, 0, tex, 0, nullptr);
+				tex->Release();
 			}
 
 			texture->_ResourceView = CreateTextureSRV(texture->_Resource, true);
@@ -431,7 +432,7 @@ ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.CPUAccessFlags = 0;
 	desc.MiscFlags = 0;
 

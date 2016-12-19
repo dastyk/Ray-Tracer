@@ -37,8 +37,8 @@ ByteAddressBuffer pointLightData: register(t2);
 ByteAddressBuffer texTriangleData: register(t3);
 ByteAddressBuffer spotLightData: register(t4);
 // t5 is for picking(for simplicity)
-Texture2D<float4> textures : register(t6);
-Texture2D<float4> normals : register(t7);
+Texture2DArray<float4> textures : register(t6);
+Texture2DArray<float4> normals : register(t7);
 
 
 SamplerState texSampler : register(s0);
@@ -280,7 +280,7 @@ groupshared float2 TempCache4[MAX_PRIMITIVES];
 groupshared float4 TempCache5[MAX_LIGHTS];
 
 
-#define NUM_BOUNCES 3
+#define NUM_BOUNCES 1
 #define TEX_STRIDE 128
 [numthreads(32, 32, 1)]
 void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
@@ -420,7 +420,7 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 							
 
 							float3 texC = float3(TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v, 0);
-							hitColor[n] = float4(textures.SampleLevel(texSampler, texC.xy, 0).rgb, 0.1f);
+							hitColor[n] = float4(textures.SampleLevel(texSampler, texC, 0).rgb, 0.1f);
 
 
 							float2 UV1 = TempCache3[i].zw - TempCache3[i].xy;
@@ -431,7 +431,7 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 							float3 bitangent = normalize((e2*UV1.x - e1*UV2.x)*r);
 
 							float3x3 TBN = float3x3(tangent, bitangent, normal);
-							float3 bumpNormal = normals.SampleLevel(texSampler, texC.xy, 0).rgb;
+							float3 bumpNormal = normals.SampleLevel(texSampler, texC, 0).rgb;
 
 							bumpNormal = normalize(bumpNormal * 2.0f - 1.0f);
 
@@ -1126,7 +1126,7 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 	{
 		// Only count if it was an actual hit.
 		if (n < numHits)												// This is an attempt at making the surfaces reflect less light per bounce.
-			color = color + hitColor[n].xyz * hitColor[n].w;// *((NUM_BOUNCES - n) / ((float)NUM_BOUNCES*((n*1.0f) + 1)));
+			color = color + hitColor[n].xyz * hitColor[n].w *((NUM_BOUNCES - n) / (float)NUM_BOUNCES);//((NUM_BOUNCES - n) / ((float)NUM_BOUNCES*((n*1.0f) + 1)));
 
 
 	}
