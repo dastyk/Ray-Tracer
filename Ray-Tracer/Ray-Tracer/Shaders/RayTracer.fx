@@ -37,8 +37,8 @@ ByteAddressBuffer pointLightData: register(t2);
 ByteAddressBuffer texTriangleData: register(t3);
 ByteAddressBuffer spotLightData: register(t4);
 // t5 is for picking(for simplicity)
-Texture2D<float4> texture1 : register(t6);
-Texture2D<float4> normal1 : register(t7);
+Texture2D<float4> textures : register(t6);
+Texture2D<float4> normals : register(t7);
 
 
 SamplerState texSampler : register(s0);
@@ -280,7 +280,7 @@ groupshared float2 TempCache4[MAX_PRIMITIVES];
 groupshared float4 TempCache5[MAX_LIGHTS];
 
 
-#define NUM_BOUNCES 1
+#define NUM_BOUNCES 3
 #define TEX_STRIDE 128
 [numthreads(32, 32, 1)]
 void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
@@ -419,21 +419,23 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 							hitPos[n] = float4(pp, tt);
 							
 
-							float2 texC = TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v;
-							hitColor[n] = float4(texture1.SampleLevel(texSampler, texC, 0).rgb, 0.1f);
+							float3 texC = float3(TempCache3[i].xy * (1 - u - v) + TempCache3[i].zw* u + TempCache4[i] * v, 0);
+							hitColor[n] = float4(textures.SampleLevel(texSampler, texC.xy, 0).rgb, 0.1f);
 
 
-							float2 UV1 =  TempCache4[i] - TempCache3[i].zw;
-							float2 UV2 = TempCache3[i].xy - TempCache3[i].zw;
+							float2 UV1 = TempCache3[i].zw - TempCache3[i].xy;
+							float2 UV2 =  TempCache4[i] - TempCache3[i].xy;
 
 							float r = 1.0f / (UV1.x*UV2.y - UV1.y * UV2.x);
 							float3 tangent = normalize((e1*UV2.y - e2*UV1.y)*r);
 							float3 bitangent = normalize((e2*UV1.x - e1*UV2.x)*r);
 
 							float3x3 TBN = float3x3(tangent, bitangent, normal);
-							float3 bumpNormal = normal1.SampleLevel(texSampler, texC, 0).rgb;
+							float3 bumpNormal = normals.SampleLevel(texSampler, texC.xy, 0).rgb;
 
-						//	hitColor[n] = float4(mul(bumpNormal, TBN), 0.1f);
+							bumpNormal = normalize(bumpNormal * 2.0f - 1.0f);
+
+							//hitColor[n] = float4(mul(bumpNormal, TBN), 0.1f);
 							hitNormal[n] = float4(mul(bumpNormal, TBN), 0.0f);
 						}
 
@@ -1135,6 +1137,12 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 	
 	float exposure = -1.00f;
 	color = float3(1.0f,1.0f,1.0f) - exp(color * exposure);
+
+
+
+		//float3 diffuseCol = f3tex2D(diffTex, texCoord);
+		//fuseCol = diffuseCol * diffuseCol;
+
 
 	output[threadID.xy] = float4(color, 1.0f);// float4(ftemp.x, 0.0f, 0.0f, 1.0f);//
 

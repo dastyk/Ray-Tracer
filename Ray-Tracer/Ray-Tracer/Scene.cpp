@@ -69,7 +69,11 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	files.push_back("Meshes/Cube.obj");*/
 	_LoadMeshes(files, data);
 
-	_Interleave(data, mats);
+
+	std::vector<uint32_t> ids;
+	ids.push_back(0);
+
+	_Interleave(data, ids, mats);
 
 
 
@@ -261,7 +265,7 @@ const void Scene::_Rotate(DirectX::XMFLOAT4 & pos, float amount)
 }
 
 
-void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, vector<XMMATRIX>& transforms)
+void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, const std::vector<uint32_t>& textureIDs, const std::vector<DirectX::XMMATRIX>& transforms)
 {
 	_numObjects.numTexTriangles = 0;
 	for (auto& d : data)
@@ -281,7 +285,7 @@ void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointe
 	for (uint32_t ID = 0; ID < data.size(); ID++)
 	{
 		auto& d = data[ID];
-		XMMATRIX& mat = transforms[ID];
+		const XMMATRIX& mat = transforms[ID];
 
 		for (uint32_t i = 0; i < d.first.NumSubMesh; i++)
 		{
@@ -298,7 +302,8 @@ void Scene::_Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointe
 				p2 = XMVector3TransformCoord(p2, mat);
 
 				XMStoreFloat4(&_textureTriangles.p0_textureID[index], p0);
-				_textureTriangles.p0_textureID[index].w = 0.0f;
+				memcpy(&_textureTriangles.p0_textureID[index].w, &textureIDs[ID], sizeof(uint32_t));
+
 				XMStoreFloat4(&_textureTriangles.p1[index], p1);
 				XMStoreFloat4(&_textureTriangles.p2[index], p2);
 

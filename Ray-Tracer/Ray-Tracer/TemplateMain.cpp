@@ -266,8 +266,22 @@ HRESULT Init()
 	g_csSpotLightBuffer->Unmap();
 
 
-	g_csTexture1 = g_ComputeSys->CreateTexture(L"Textures/chino.jpg");
-	g_csNormal1 = g_ComputeSys->CreateTexture(L"Textures/face_norm.jpg");
+	g_csTexture1 = g_ComputeSys->CreateTexture(L"Textures/Floor_Dif.png");
+
+	std::vector<const wchar_t*> textures;
+	textures.push_back(L"Textures/Floor_Dif.png");
+	textures.push_back(L"Textures/Wall_Dif.png");
+
+	//g_csTexture1 = g_ComputeSys->CreateTextureArray(textures);
+
+	std::vector<const wchar_t*> normals;
+	normals.push_back(L"Textures/Floor_NM.png");
+	normals.push_back(L"Textures/Wall_NM.png");
+
+	//g_csNormal1 = g_ComputeSys->CreateTextureArray(normals);
+
+	g_csNormal1 = g_ComputeSys->CreateTexture(L"Textures/Floor_NM.png");
+
 
 
 	D3D11_SAMPLER_DESC samd;

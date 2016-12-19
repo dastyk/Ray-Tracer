@@ -5,6 +5,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include "DirectXTK\WICTextureLoader.h"
+#include <vector>
 
 //#include <d3dx11.h>
 
@@ -208,6 +209,7 @@ public:
 		UINT uHeight, UINT uRowPitch, VOID* pInitData, bool bCreateStaging = false, const char* debugName = nullptr);
 
 	ComputeTexture* CreateTexture(const wchar_t* textureFilename, const char* debugName = nullptr);
+	ComputeTexture* CreateTextureArray(std::vector<const wchar_t*> textureFilenames, const char* debugName = nullptr);
 
 private:
 	ID3D11Buffer* CreateStructuredBuffer(UINT uElementSize, UINT uCount, bool bSRV, bool bUAV, VOID* pInitData, bool cpuAccess);
@@ -218,9 +220,9 @@ private:
 
 	//texture functions
 	ID3D11Texture2D* CreateTextureResource(DXGI_FORMAT dxFormat,
-		UINT uWidth, UINT uHeight, UINT uRowPitch, VOID* pInitData);
+		UINT uWidth, UINT uHeight, UINT uRowPitch, UINT arraySize, VOID* pInitData);
 	//ID3D11Buffer* CreateRawBuffer(UINT uSize, VOID* pInitData);
-	ID3D11ShaderResourceView* CreateTextureSRV(ID3D11Texture2D* pTexture);
+	ID3D11ShaderResourceView* CreateTextureSRV(ID3D11Texture2D* pTexture, bool array = false);
 	ID3D11UnorderedAccessView* CreateTextureUAV(ID3D11Texture2D* pTexture);
 	ID3D11Texture2D* CreateStagingTexture(ID3D11Texture2D* pTexture);
 	

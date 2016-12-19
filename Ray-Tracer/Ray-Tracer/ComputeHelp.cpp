@@ -326,7 +326,7 @@ ComputeTexture* ComputeWrap::CreateTexture(DXGI_FORMAT dxFormat, UINT uWidth,
 	ComputeTexture* texture = new ComputeTexture();
 	texture->_D3DContext = mD3DDeviceContext;
 
-	texture->_Resource = CreateTextureResource(dxFormat, uWidth, uHeight, uRowPitch, pInitData);
+	texture->_Resource = CreateTextureResource(dxFormat, uWidth, uHeight, uRowPitch, 1, pInitData);
 
 	if(texture->_Resource != nullptr)
 	{
@@ -352,7 +352,7 @@ ComputeTexture* ComputeWrap::CreateTexture(const wchar_t* textureFilename, const
 {
 	ComputeTexture* texture = new ComputeTexture();
 	texture->_D3DContext = mD3DDeviceContext;
-	ID3D11Resource** tex = (ID3D11Resource**)&texture->_Resource;
+	ID3D11Resource** tex = (ID3D11Resource**)&texture->_Resource;// = (ID3D11Resource**)&texture->_Resource;
 	HRESULT hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilename, tex, &texture->_ResourceView);
 	if (FAILED(hr))
 	{
@@ -369,8 +369,56 @@ ComputeTexture* ComputeWrap::CreateTexture(const wchar_t* textureFilename, const
 	return texture;
 }
 
+ComputeTexture * ComputeWrap::CreateTextureArray(std::vector<const wchar_t*> textureFilenames, const char * debugName)
+{
+	ComputeTexture* texture = new ComputeTexture();
+	texture->_D3DContext = mD3DDeviceContext;
+
+	ID3D11Texture2D* tex = nullptr; 
+	ID3D11Resource** res = (ID3D11Resource**)&tex;;// = (ID3D11Resource**)&texture->_Resource;
+	HRESULT hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilenames[0], res, nullptr);
+
+
+	if (SUCCEEDED(hr))
+	{
+		
+
+		D3D11_TEXTURE2D_DESC desc;
+		tex->GetDesc(&desc);
+
+
+
+		texture->_Resource = CreateTextureResource(desc.Format, desc.Width, desc.Height, 0, textureFilenames.size(), nullptr);
+
+		if (texture->_Resource != nullptr)
+		{
+			D3D11_BOX sourceRegion;
+			sourceRegion.left = 0;
+			sourceRegion.right = desc.Width;
+			sourceRegion.top = 0;
+			sourceRegion.bottom = desc.Height;
+			sourceRegion.front = 0;
+			sourceRegion.back = 1;
+
+			mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, 0, 0, 0, 0, tex, 0, &sourceRegion);
+
+			tex->Release();
+
+			for (uint32_t i = 1; i < textureFilenames.size(); i++)
+			{
+				hr = DirectX::CreateWICTextureFromFile(mD3DDevice, textureFilenames[0], res, nullptr);
+				mD3DDeviceContext->CopySubresourceRegion(texture->_Resource, i, 0, 0, 0, *res, 0, &sourceRegion);
+				(*res)->Release();
+			}
+
+			texture->_ResourceView = CreateTextureSRV(texture->_Resource, true);
+		}
+	}
+	return texture;
+}
+
 ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
-	UINT uWidth, UINT uHeight, UINT uRowPitch, VOID* pInitData)
+	UINT uWidth, UINT uHeight, UINT uRowPitch, UINT arraySize, VOID* pInitData)
 {
 	ID3D11Texture2D* pTexture = nullptr;
 
@@ -378,7 +426,7 @@ ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
 	desc.Width = uWidth;
 	desc.Height = uHeight;
 	desc.MipLevels = 1;
-	desc.ArraySize = 1;
+	desc.ArraySize = arraySize;
 	desc.Format = dxFormat;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
@@ -399,7 +447,7 @@ ID3D11Texture2D* ComputeWrap::CreateTextureResource(DXGI_FORMAT dxFormat,
 	return pTexture;
 }
 
-ID3D11ShaderResourceView* ComputeWrap::CreateTextureSRV(ID3D11Texture2D* pTexture)
+ID3D11ShaderResourceView* ComputeWrap::CreateTextureSRV(ID3D11Texture2D* pTexture, bool array)
 {
 	ID3D11ShaderResourceView* pSRV = nullptr;
 
@@ -411,7 +459,12 @@ ID3D11ShaderResourceView* ComputeWrap::CreateTextureSRV(ID3D11Texture2D* pTextur
 	ZeroMemory( &viewDesc, sizeof(viewDesc) ); 
 	
 	viewDesc.Format					= td.Format;
-	viewDesc.ViewDimension			= D3D11_SRV_DIMENSION_TEXTURE2D;
+	//viewDesc.Texture2D.MostDetailedMip = 0;
+	//viewDesc.Texture2DArray.ArraySize = td.ArraySize;
+	//viewDesc.Texture2DArray.FirstArraySlice = 0;
+	//viewDesc.Texture2DArray.MipLevels = td.MipLevels;
+	//viewDesc.Texture2DArray.MostDetailedMip = 0;
+	viewDesc.ViewDimension			= array? D3D11_SRV_DIMENSION_TEXTURE2DARRAY : D3D11_SRV_DIMENSION_TEXTURE2D;
 	viewDesc.Texture2D.MipLevels	= td.MipLevels;
 
 	if(FAILED(mD3DDevice->CreateShaderResourceView(pTexture, &viewDesc, &pSRV)))

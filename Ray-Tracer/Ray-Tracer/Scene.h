@@ -53,7 +53,7 @@ private:
 
 
 
-	void _Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, std::vector<DirectX::XMMATRIX>& transforms);
+	void _Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, const std::vector<uint32_t>& textureIDs, const std::vector<DirectX::XMMATRIX>& transforms);
 	void _LoadMeshes(const std::vector<const char*>& files, std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data);
 	void _LoadMesh(const char* filename, std::pair<ArfData::Data, ArfData::DataPointers>& data);
 };
