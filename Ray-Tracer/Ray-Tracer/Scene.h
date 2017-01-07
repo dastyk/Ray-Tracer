@@ -32,6 +32,7 @@ private:
 	const void _AddSphere(const DirectX::XMFLOAT3& pos, float radius, const DirectX::XMFLOAT3& color);
 	const void _AddTriangle(const DirectX::XMFLOAT3& p0, const DirectX::XMFLOAT3& p1, const DirectX::XMFLOAT3& p2, const DirectX::XMFLOAT3& color);
 	const void _AddRandomSphere();
+	const void _AddRandomPointLight();
 	const void _AddPointLight(const DirectX::XMFLOAT3& pos, float luminosity);
 	const void _AddSpotLight(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& dir, float range, float theta, float phi, float luminosity);
 	const void _Rotate(DirectX::XMFLOAT4& pos, float amount);

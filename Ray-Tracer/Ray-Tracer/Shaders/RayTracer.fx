@@ -282,7 +282,7 @@ groupshared float4 TempCache5[MAX_LIGHTS];
 
 #define NUM_BOUNCES 3
 #define TEX_STRIDE 128
-[numthreads(32, 32, 1)]
+[numthreads(16, 32, 1)]
 void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 {
 	uint minTexNum = min(g_numTexTriangles, TEX_STRIDE);

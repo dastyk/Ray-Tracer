@@ -55,6 +55,10 @@ ComputeShader*				g_pickingCmpShader		= nullptr;
 ID3D11Buffer*				g_pickIntBuffer			= nullptr;
 ID3D11Buffer*				g_pickCompBuffer		= nullptr;
 ComputeBuffer*				g_pickBuff[2]			= { nullptr, nullptr };
+
+double rendertime;
+double updatetime;
+
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
@@ -654,9 +658,13 @@ HRESULT Render(float deltaTime)
 	g_ComputeShader->Set();
 	
 
-	g_Timer->Start();
-	g_DeviceContext->Dispatch( 25, 25, 1 );
-	g_Timer->Stop();
+	//g_Timer->Start();
+	g_DeviceContext->Dispatch( 50, 25, 1 );
+	//g_Timer->Stop();
+
+
+
+
 	g_ComputeShader->Unset();
 
 	g_DeviceContext->CSSetUnorderedAccessViews(0, 1, nulluav, nullptr);
@@ -703,50 +711,92 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
  float timeval = 0.0f;
 	// Main message loop
 	MSG msg = {0};
-	while(WM_QUIT != msg.message)
+	//while(WM_QUIT != msg.message)
+	//{
+	//	if( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE) )
+	//	{
+	//		TranslateMessage( &msg );
+	//		DispatchMessage( &msg );
+	//	}
+	//	else
+	//	{
+	//		__int64 currTimeStamp = 0;
+	//		QueryPerformanceCounter((LARGE_INTEGER*)&currTimeStamp);
+	//		float dt = (currTimeStamp - prevTimeStamp) * secsPerCnt;
+
+	//		
+
+	//		//render
+	//		Update(dt);
+	//		Render(dt);
+
+	//		
+
+	//		prevTimeStamp = currTimeStamp;
+
+	//		timeval += dt;
+	//		frameCount++;
+	//		if (timeval > 1.0f)
+	//		{
+	//			pCount = frameCount;
+	//			frameCount = 0;
+	//			timeval = 0.0f;
+	//		}
+
+	//		char title[256];
+	//		sprintf_s(
+	//			title,
+	//			sizeof(title),
+	//			"FPS: %d, Dispatch time: %f", pCount,
+	//			g_Timer->GetTime()
+	//		);
+	//		SetWindowTextA(g_hWnd, title);
+	//	}
+	//}
+
+
+	for (int i = 0; i < 1000; i++)
 	{
-		if( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE) )
-		{
-			TranslateMessage( &msg );
-			DispatchMessage( &msg );
-		}
-		else
-		{
-			__int64 currTimeStamp = 0;
-			QueryPerformanceCounter((LARGE_INTEGER*)&currTimeStamp);
-			float dt = (currTimeStamp - prevTimeStamp) * secsPerCnt;
+		__int64 currTimeStamp = 0;
+		QueryPerformanceCounter((LARGE_INTEGER*)&currTimeStamp);
+		float dt = (currTimeStamp - prevTimeStamp) * secsPerCnt;
 
-			
 
-			//render
-			Update(dt);
-			Render(dt);
 
-			
+		//render
+		g_Timer->Start();
+		Update(dt);
+		g_Timer->Stop();
+		updatetime += g_Timer->GetTime();
+		
 
-			prevTimeStamp = currTimeStamp;
+		g_Timer->Start();
+		Render(dt);
+		g_Timer->Stop();
+		rendertime += g_Timer->GetTime();
 
-			timeval += dt;
-			frameCount++;
-			if (timeval > 1.0f)
-			{
-				pCount = frameCount;
-				frameCount = 0;
-				timeval = 0.0f;
-			}
-
-			char title[256];
-			sprintf_s(
-				title,
-				sizeof(title),
-				"FPS: %d, Dispatch time: %f", pCount,
-				g_Timer->GetTime()
-			);
-			SetWindowTextA(g_hWnd, title);
-		}
+		prevTimeStamp = currTimeStamp;
 	}
 
+	updatetime /= 1000;
+	rendertime /= 1000;
 	Shutdown();
+
+
+	if (AllocConsole())
+	{
+		freopen("conin$", "r", stdin);
+		freopen("conout$", "w", stdout);
+		freopen("conout$", "w", stderr);
+
+		printf("<----||Console Initialized||---->\n\n");
+
+
+		printf("Update time: %f\n", updatetime);
+		printf("Render time: %f\n", rendertime);
+
+		getchar();
+	}
 
 	return (int) msg.wParam;
 }

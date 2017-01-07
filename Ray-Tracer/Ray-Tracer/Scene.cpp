@@ -4,12 +4,17 @@
 using namespace std;
 using namespace DirectX;
 
-Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _height(height), _input(input), _camera(90.0f, (float)_width / (float)_height, 0.01f, 100.0f, XMFLOAT3(3.0f, 3.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 0.0f))
+Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _height(height), _input(input), _camera(90.0f, (float)_width / (float)_height, 0.01f, 100.0f, XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 0.0f))
 {
 	srand(1337U);
 	memset(&_numObjects, 0, sizeof(SceneData::CountData));
-//	_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	//_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+
+	//for (int i = 0; i < 20; i++)
+	//{
+	//	_AddRandomSphere();
+	//}
 
 
 	_AddTriangle(XMFLOAT3(1.5f, 0.0f, 0.0f), XMFLOAT3(1.5f, 3.0f, 4.0f), XMFLOAT3(3.0f, -2.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
@@ -49,8 +54,13 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	//	_AddRandomSphere();
 	//_AddPointLight(XMFLOAT3(-5.0f, 7.0, -5.0f), 0.5f);
 
-	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.15f);
-	_AddSpotLight(XMFLOAT3(5.0f, 0.0f, -5.0f), XMFLOAT3(-2, 0.0f, 2), 30.0f, 10.0f, 30.0f, 1.0f);
+	_AddPointLight(XMFLOAT3(8.0f, 0.0f, 3.0f), 0.45f);
+	//for (int i = 0; i < 16; i++)
+
+	//{
+	//	_AddRandomPointLight();
+	//}
+	_AddSpotLight(XMFLOAT3(5.0f, 0.0f, -5.0f), XMFLOAT3(-2, 0.0f, 2), 30.0f, 10.0f, 30.0f, 0.8f);
 
 	std::vector<const char*> files;
 	vector<std::pair<ArfData::Data, ArfData::DataPointers>> data;
@@ -69,14 +79,25 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 	files.push_back("Meshes/Cube.obj");
 	mats.push_back(XMMatrixTranslation(-5.0f, -5.0f, 0.0f));
 	files.push_back("Meshes/Cube.obj");*/
-	_LoadMeshes(files, data);
-
 
 	std::vector<uint32_t> ids;
 	ids.push_back(0);
 	ids.push_back(2);
 	ids.push_back(2);
 	ids.push_back(1);
+	//for (int i = 0; i < 62; i++)
+	//{
+	//	XMFLOAT3 pos = XMFLOAT3((rand() % 200 - 100) / 10.0f, (rand() % 200 - 100) / 10.0f, (rand() % 200 - 100) / 10.0f);
+	//	mats.push_back(XMMatrixTranslation(pos.x, pos.y, pos.z));
+	//	files.push_back("Meshes/Cube.obj");
+	//	ids.push_back(0);
+	//	ids.push_back(2);
+	//}
+	//
+	_LoadMeshes(files, data);
+
+
+
 	_Interleave(data, ids, mats);
 
 
@@ -229,6 +250,13 @@ const void Scene::_AddRandomSphere()
 	XMFLOAT3 Color = XMFLOAT3((rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f, (rand() % 10000) / 10000.0f);
 	float radius = (rand() % 8 - 4) / 4.0f;
 	_AddSphere(pos, radius, Color);
+}
+
+const void Scene::_AddRandomPointLight()
+{
+	XMFLOAT3 pos = XMFLOAT3((rand() % 200 - 100) / 10.0f, (rand() % 200 - 100) / 10.0f, (rand() % 200 - 100) / 10.0f);
+	float radius = 0.2f;
+	_AddPointLight(pos, radius);
 }
 
 const void Scene::_AddPointLight(const DirectX::XMFLOAT3 & pos, float luminosity)
