@@ -8,13 +8,13 @@ Scene::Scene(uint32_t width, uint32_t height, Input & input) : _width(width), _h
 {
 	srand(1337U);
 	memset(&_numObjects, 0, sizeof(SceneData::CountData));
-	_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
-	//_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	//_AddSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 2.0f, XMFLOAT3(1.0f, 0.0f, 0.0f));
+	_AddSphere(XMFLOAT3(5.0f, 0.5f, 0.0f), 0.5f, XMFLOAT3(1.0f, 0.0f, 0.0f));
 
-	//for (int i = 0; i < 20; i++)
-	//{
-	//	_AddRandomSphere();
-	//}
+	for (int i = 0; i < 10; i++)
+	{
+		_AddRandomSphere();
+	}
 
 
 	_AddTriangle(XMFLOAT3(1.5f, 0.0f, 0.0f), XMFLOAT3(1.5f, 3.0f, 4.0f), XMFLOAT3(3.0f, -2.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
