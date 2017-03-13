@@ -26,7 +26,7 @@ public:
 	const void UpdateSphere(uint32_t ID);
 	const void UpdateTriangle(uint32_t ID);
 	const void UpdateTexTriangle(const DirectX::XMFLOAT3& pos);
-
+	const DirectX::XMFLOAT4X4* GetTranslations(uint32_t& numMesh);
 	Camera* GetCamera();
 private:
 	const void _AddSphere(const DirectX::XMFLOAT3& pos, float radius, const DirectX::XMFLOAT3& color);
@@ -52,9 +52,11 @@ private:
 	SceneData::SpotLights _spotLights;
 	SceneData::CountData _numObjects;
 
+	DirectX::XMFLOAT4X4* _translations;
+	uint32_t _numMesh;
 
 
-	void _Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, const std::vector<uint32_t>& textureIDs, const std::vector<DirectX::XMMATRIX>& transforms);
+	void _Interleave(std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data, const std::vector<uint32_t>& textureIDs);
 	void _LoadMeshes(const std::vector<const char*>& files, std::vector<std::pair<ArfData::Data, ArfData::DataPointers>>& data);
 	void _LoadMesh(const char* filename, std::pair<ArfData::Data, ArfData::DataPointers>& data);
 };

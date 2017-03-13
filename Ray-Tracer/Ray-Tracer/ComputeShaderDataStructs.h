@@ -54,7 +54,7 @@ namespace SceneData
 	struct TexturedTriangle
 	{
 		DirectX::XMFLOAT4* p0_textureID = nullptr;
-		DirectX::XMFLOAT4* p1 = nullptr;
+		DirectX::XMFLOAT4* p1_meshID = nullptr;
 		DirectX::XMFLOAT4* p2 = nullptr;
 		DirectX::XMFLOAT2* t0 = nullptr;
 		DirectX::XMFLOAT2* t1 = nullptr;

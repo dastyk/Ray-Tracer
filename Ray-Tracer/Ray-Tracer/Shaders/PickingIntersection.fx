@@ -42,7 +42,7 @@ ByteAddressBuffer triangleData: register(t1);
 ByteAddressBuffer pointLightData: register(t2);
 ByteAddressBuffer texTriangleData: register(t3);
 ByteAddressBuffer spotLightData: register(t4);
-
+StructuredBuffer<matrix> translationBuffer: register(t5);
 
 struct PickingInfo
 {
@@ -324,12 +324,18 @@ void main(uint threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex, 
 		float tt;
 		float3 p;
 		float3  ftemp = asfloat(texTriangleData.Load4(threadID * 16)).xyz; // p0
-		float3 ftemp1 = asfloat(texTriangleData.Load4(threadID * 16 + g_numTexTriangles * 16)).xyz; // p1
+		float4 ftemp1 = asfloat(texTriangleData.Load4(threadID * 16 + g_numTexTriangles * 16)).xyzw; // p1
 		float3 ftemp2 = asfloat(texTriangleData.Load4(threadID * 16 + g_numTexTriangles * 32)).xyz; // p2
+
+		matrix mat = translationBuffer[ftemp1.w];
+		ftemp.xyz = mul(float4(ftemp.xyz, 1.0f), mat).xyz;
+		ftemp1.xyz = mul(float4(ftemp1.xyz, 1.0f), mat).xyz;
+		ftemp2.xyz = mul(float4(ftemp2.xyz, 1.0f), mat).xyz;
+
 		//float3 ftemp = float3(-10.0f, -100.0f, 0.0f);// asfloat(texTriangleData.Load4(threadID * 16)).xyz; // p0
 		//float3 ftemp1 = float3(-10.0f, 100.0f, 0.0f);// asfloat(texTriangleData.Load4(threadID * 16 + g_numTexTriangles * 16)).xyz; // p1
 		//float3 ftemp2 = float3(10.0f, 0.0f, 0.0f);// asfloat(texTriangleData.Load4(threadID * 16 + g_numTexTriangles * 32)).xyz; // p2
-		if (RayTriangleIntersectNoFaceCullMinData(g_MouseRay, ftemp, ftemp1, ftemp2, tt, p))
+		if (RayTriangleIntersectNoFaceCullMinData(g_MouseRay, ftemp, ftemp1.xyz, ftemp2, tt, p))
 		{
 			
 			if (tt < localInfo.t)

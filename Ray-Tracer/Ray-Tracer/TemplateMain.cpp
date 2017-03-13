@@ -55,7 +55,7 @@ ComputeShader*				g_pickingCmpShader		= nullptr;
 ID3D11Buffer*				g_pickIntBuffer			= nullptr;
 ID3D11Buffer*				g_pickCompBuffer		= nullptr;
 ComputeBuffer*				g_pickBuff[2]			= { nullptr, nullptr };
-
+ComputeBuffer*				g_TranslationBuffer		= nullptr;
 double rendertime;
 double updatetime;
 
@@ -93,6 +93,9 @@ HRESULT Init()
 
 	UINT createDeviceFlags = 0;
 #if defined( DEBUG ) || defined( _DEBUG )
+	_CrtDumpMemoryLeaks();
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_crtBreakAlloc = 219;
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -197,6 +200,10 @@ HRESULT Init()
 	g_csTexTriangleBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::texturedTriangleSize, cdata.numTexTriangles, true, false, nullptr, true);
 	g_csSpotLightBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::RAW_BUFFER, SceneData::spotLightSize, SceneData::maxSpotLights , true, false, nullptr, true);
 
+	uint32_t NumMesh;
+	void * translations_h = (void*)g_Scene->GetTranslations(NumMesh);
+	g_TranslationBuffer = g_ComputeSys->CreateBuffer(COMPUTE_BUFFER_TYPE::STRUCTURED_BUFFER, sizeof(XMFLOAT4X4), NumMesh, true, false, translations_h, true);
+	
 	// Copy sphere data to device
 	const SceneData::Sphere& sphereData_h = g_Scene->GetSpheres();
 	void* sphereData_d = g_csSphereBuffer->Map<void>();
@@ -242,7 +249,7 @@ HRESULT Init()
 
 	memcpy(texTriData_d, texTriangleData_h.p0_textureID, sizeof(XMFLOAT4)*cdata.numTexTriangles);
 	texTriData_d = (XMFLOAT4*)texTriData_d + cdata.numTexTriangles;
-	memcpy(texTriData_d, texTriangleData_h.p1, sizeof(XMFLOAT4)*cdata.numTexTriangles);
+	memcpy(texTriData_d, texTriangleData_h.p1_meshID, sizeof(XMFLOAT4)*cdata.numTexTriangles);
 	texTriData_d = (XMFLOAT4*)texTriData_d + cdata.numTexTriangles;
 	memcpy(texTriData_d, texTriangleData_h.p2, sizeof(XMFLOAT4)*cdata.numTexTriangles);
 	texTriData_d = (XMFLOAT4*)texTriData_d + cdata.numTexTriangles;
@@ -303,7 +310,7 @@ HRESULT Init()
 	g_Device->CreateSamplerState(&samd, &g_sampler);
 	g_DeviceContext->CSSetSamplers(0, 1, &g_sampler);
 
-
+	
 	ID3D11ShaderResourceView* srvs[] = 
 	{ 
 		g_csSphereBuffer->GetResourceView(),
@@ -311,13 +318,14 @@ HRESULT Init()
 		g_csPointLightBuffer->GetResourceView(),
 		g_csTexTriangleBuffer->GetResourceView(),
 		g_csSpotLightBuffer->GetResourceView(),
+		g_TranslationBuffer->GetResourceView(),
 		nullptr,
 		g_csTexture1->GetResourceView(),
 		g_csNormal1->GetResourceView()
 	};
 
 	ID3D11Buffer* cbuffers[] = { g_csCountbuffer };
-	g_DeviceContext->CSSetShaderResources(0, 8, srvs);
+	g_DeviceContext->CSSetShaderResources(0, 9, srvs);
 	g_DeviceContext->CSSetConstantBuffers(1, 1, cbuffers);
 
 	g_pickingIntShader = g_ComputeSys->CreateComputeShader(_T("Shaders/PickingIntersection.fx"), nullptr, "main", nullptr);
@@ -340,6 +348,7 @@ HRESULT Init()
 
 void Shutdown()
 {
+	SAFE_DELETE(g_TranslationBuffer);
 	SAFE_DELETE(g_pickBuff[0]);
 	SAFE_DELETE(g_pickBuff[1]);
 	SAFE_RELEASE(g_pickIntBuffer);
@@ -537,17 +546,19 @@ void Picking()
 
 
 
-		ID3D11ShaderResourceView* srvs[] = {
+		ID3D11ShaderResourceView* srvs[] =
+		{
 			g_csSphereBuffer->GetResourceView(),
 			g_csTriangleBuffer->GetResourceView(),
 			g_csPointLightBuffer->GetResourceView(),
 			g_csTexTriangleBuffer->GetResourceView(),
 			g_csSpotLightBuffer->GetResourceView(),
+			g_TranslationBuffer->GetResourceView(),
 			nullptr,
 			g_csTexture1->GetResourceView(),
-			g_csNormal1->GetResourceView() 
+			g_csNormal1->GetResourceView()
 		};
-		g_DeviceContext->CSSetShaderResources(0, 8, srvs);
+		g_DeviceContext->CSSetShaderResources(0, 9, srvs);
 	}
 	
 
@@ -606,21 +617,28 @@ HRESULT Update(float deltaTime)
 		memcpy(pointLightData_d, pointLightData_h.Position3_Luminosity1, sizeof(XMFLOAT4)*cdata.numPointLights);
 
 		g_csPointLightBuffer->Unmap();
+		uint32_t NumMesh;
+		const auto translations_h = g_Scene->GetTranslations(NumMesh);
+		void* translations_D = g_TranslationBuffer->Map<void>();
+
+		memcpy(translations_D, translations_h, sizeof(XMFLOAT4X4)*NumMesh);
 
 
+		g_TranslationBuffer->Unmap();
 
-
-		ID3D11ShaderResourceView* srvs[] = { 
+		ID3D11ShaderResourceView* srvs[] =
+		{
 			g_csSphereBuffer->GetResourceView(),
 			g_csTriangleBuffer->GetResourceView(),
 			g_csPointLightBuffer->GetResourceView(),
 			g_csTexTriangleBuffer->GetResourceView(),
 			g_csSpotLightBuffer->GetResourceView(),
+			g_TranslationBuffer->GetResourceView(),
 			nullptr,
 			g_csTexture1->GetResourceView(),
 			g_csNormal1->GetResourceView()
 		};
-		g_DeviceContext->CSSetShaderResources(0, 8, srvs);
+		g_DeviceContext->CSSetShaderResources(0, 9, srvs);
 	}
 
 	
@@ -780,7 +798,6 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 	//updatetime /= 1000;
 	//rendertime /= 1000;
-	//Shutdown();
 
 
 	//if (AllocConsole())
@@ -797,6 +814,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 	//	getchar();
 	//}
+
+	Shutdown();
 
 	return (int) msg.wParam;
 }

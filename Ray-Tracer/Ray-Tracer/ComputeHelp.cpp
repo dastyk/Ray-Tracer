@@ -179,8 +179,10 @@ ID3D11Buffer* ComputeWrap::CreateStructuredBuffer(UINT uElementSize, UINT uCount
 	desc.ByteWidth = bufferSize < 16 ? 16 : bufferSize;
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     desc.StructureByteStride = uElementSize;
-	desc.CPUAccessFlags = cpuAccess ? D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ : 0;
-	desc.Usage = cpuAccess ? D3D11_USAGE_DEFAULT : pInitData ? D3D11_USAGE_IMMUTABLE : D3D11_USAGE_DEFAULT;
+	desc.CPUAccessFlags = 0;
+	desc.CPUAccessFlags = cpuAccess ? D3D11_CPU_ACCESS_WRITE : 0;
+	desc.CPUAccessFlags |= cpuAccess && !pInitData ? D3D11_CPU_ACCESS_READ : 0;
+	desc.Usage = pInitData&&cpuAccess ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 
     if ( pInitData )
     {

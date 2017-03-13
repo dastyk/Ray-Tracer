@@ -36,9 +36,10 @@ ByteAddressBuffer triangleData: register(t1);
 ByteAddressBuffer pointLightData: register(t2);
 ByteAddressBuffer texTriangleData: register(t3);
 ByteAddressBuffer spotLightData: register(t4);
-// t5 is for picking(for simplicity)
-Texture2DArray<float4> textures : register(t6);
-Texture2DArray<float4> normals : register(t7);
+StructuredBuffer<matrix> translationBuffer: register(t5);
+// t6 is for picking
+Texture2DArray<float4> textures : register(t7);
+Texture2DArray<float4> normals : register(t8);
 
 
 SamplerState texSampler : register(s0);
@@ -370,6 +371,12 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 			// Share the prefetched data with group.
 			if (groupIndex < numTexTri)
 			{
+
+				matrix mat = translationBuffer[ftemp1.w];
+				ftemp.xyz = mul(float4(ftemp.xyz, 1.0f), mat).xyz;
+				ftemp1.xyz = mul(float4(ftemp1.xyz, 1.0f), mat).xyz;
+				ftemp2.xyz = mul(float4(ftemp2.xyz, 1.0f), mat).xyz;
+
 				TempCache[groupIndex] = ftemp;
 				TempCache1[groupIndex] = ftemp1;
 				TempCache2[groupIndex] = ftemp2;
@@ -595,6 +602,12 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 			// Share the prefetched data with group.
 			if (groupIndex < numTexTri)
 			{
+				matrix mat = translationBuffer[ftemp1.w];
+				ftemp.xyz = mul(float4(ftemp.xyz, 1.0f), mat).xyz;
+				ftemp1.xyz = mul(float4(ftemp1.xyz, 1.0f), mat).xyz;
+				ftemp2.xyz = mul(float4(ftemp2.xyz, 1.0f), mat).xyz;
+
+
 				TempCache[groupIndex] = ftemp;
 				TempCache1[groupIndex] = ftemp1;
 				TempCache2[groupIndex] = ftemp2;
@@ -851,6 +864,11 @@ void main(uint3 threadID : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
 			// Share the prefetched data with group.
 			if (groupIndex < numTexTri)
 			{
+				matrix mat = translationBuffer[ftemp1.w];
+				ftemp.xyz = mul(float4(ftemp.xyz, 1.0f), mat).xyz;
+				ftemp1.xyz = mul(float4(ftemp1.xyz, 1.0f), mat).xyz;
+				ftemp2.xyz = mul(float4(ftemp2.xyz, 1.0f), mat).xyz;
+
 				TempCache[groupIndex] = ftemp;
 				TempCache1[groupIndex] = ftemp1;
 				TempCache2[groupIndex] = ftemp2;

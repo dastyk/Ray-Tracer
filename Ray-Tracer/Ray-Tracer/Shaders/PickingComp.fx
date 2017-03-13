@@ -14,7 +14,7 @@ struct PickingInfo
 	int ID;
 };
 
-StructuredBuffer<PickingInfo> pickingResultIn : register(t5);
+StructuredBuffer<PickingInfo> pickingResultIn : register(t6);
 RWStructuredBuffer<PickingInfo> pickingResultOut : register(u0);
 
 [numthreads(1024, 1, 1)]
